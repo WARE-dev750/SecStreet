@@ -3,6 +3,7 @@ export interface WorkflowStep {
   capability: string;
   input?: unknown;
   from?: string;
+  timeoutMs?: number;
 }
 
 export interface Workflow {

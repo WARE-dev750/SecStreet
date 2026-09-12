@@ -18,19 +18,24 @@ export interface RunOptions {
 }
 
 export async function runCapability(opts: RunOptions): Promise<CapabilityRunResult> {
-  const { capabilityDir, manifest, input, timeoutMs = 15000, policy = DEFAULT_POLICY } = opts;
+  const { capabilityDir, manifest, input, policy = DEFAULT_POLICY } = opts;
 
   const decision = evaluatePolicy(manifest, policy);
   if (!decision.allowed) {
     return {
       ok: false,
       stdout: "",
-      stderr: `policy denied: ${decision.reason}`,
+      stderr: "policy denied: " + decision.reason,
       exitCode: 3,
       durationMs: 0,
       deniedByPolicy: { reason: decision.reason ?? "denied", disallowed: decision.disallowed },
     };
   }
+
+  const exec = manifest.execution ?? {};
+  const timeoutMs = opts.timeoutMs ?? exec.timeoutMs ?? 15000;
+  const cwd = exec.cwd ? join(capabilityDir, exec.cwd) : capabilityDir;
+  const env = { ...process.env, ...(exec.env ?? {}) };
 
   const entry = isAbsolute(manifest.entrypoint)
     ? manifest.entrypoint
@@ -41,11 +46,11 @@ export async function runCapability(opts: RunOptions): Promise<CapabilityRunResu
   const args = manifest.language === "binary" ? spec.args : [...spec.args, entry];
 
   return new Promise<CapabilityRunResult>((resolve) => {
-    const child = spawn(command, args, { cwd: capabilityDir, stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn(command, args, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
     let stdout = ""; let stderr = ""; let finished = false;
     const timer = setTimeout(() => {
       if (finished) return; finished = true; child.kill("SIGKILL");
-      resolve({ ok: false, stdout, stderr: stderr + "\n[timeout]", exitCode: -1, durationMs: Date.now() - started });
+      resolve({ ok: false, stdout, stderr: stderr + "\n[timeout after " + timeoutMs + "ms]", exitCode: -1, durationMs: Date.now() - started });
     }, timeoutMs);
     child.stdout.on("data", (d) => (stdout += d.toString()));
     child.stderr.on("data", (d) => (stderr += d.toString()));

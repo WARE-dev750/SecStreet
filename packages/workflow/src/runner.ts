@@ -31,41 +31,43 @@ export async function runWorkflow(opts: RunWorkflowOptions): Promise<WorkflowRes
       return { name: workflow.name, ok: false, steps, error: "each step requires id and capability" };
     }
     if (outputs.has(step.id)) {
-      return { name: workflow.name, ok: false, steps, error: `duplicate step id: ${step.id}` };
+      return { name: workflow.name, ok: false, steps, error: "duplicate step id: " + step.id };
     }
-
     const cap = byName.get(step.capability);
     if (!cap) {
-      return { name: workflow.name, ok: false, steps, error: `capability not found: ${step.capability}` };
+      return { name: workflow.name, ok: false, steps, error: "capability not found: " + step.capability };
     }
 
     let input: unknown;
     if (step.from) {
       if (!outputs.has(step.from)) {
-        return { name: workflow.name, ok: false, steps, error: `step ${step.id} references unknown step: ${step.from}` };
+        return { name: workflow.name, ok: false, steps, error: "step " + step.id + " references unknown step: " + step.from };
       }
       input = outputs.get(step.from);
     } else if (step.input !== undefined) {
       input = step.input;
     } else {
-      return { name: workflow.name, ok: false, steps, error: `step ${step.id} needs input or from` };
+      return { name: workflow.name, ok: false, steps, error: "step " + step.id + " needs input or from" };
     }
 
     const result = await runCapability({
       capabilityDir: cap.dir,
       manifest: cap.manifest,
-      input
+      input,
+      timeoutMs: step.timeoutMs,
     });
 
     const stepResult: StepResult = {
       id: step.id,
       capability: step.capability,
       ok: result.ok,
-      durationMs: result.durationMs
+      durationMs: result.durationMs,
     };
 
     if (!result.ok) {
-      stepResult.error = result.stderr || `exit code ${result.exitCode}`;
+      stepResult.error = result.deniedByPolicy
+        ? "policy denied: " + result.deniedByPolicy.reason
+        : (result.stderr || "exit code " + result.exitCode);
       steps.push(stepResult);
       return { name: workflow.name, ok: false, steps, error: stepResult.error };
     }

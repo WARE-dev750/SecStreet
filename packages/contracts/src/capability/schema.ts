@@ -29,7 +29,7 @@ export function validateManifest(
     errors.push("description must be a non-empty string");
   }
   if (typeof m.language !== "string" || !LANGUAGES.includes(m.language as CapabilityLanguage)) {
-    errors.push(`language must be one of: ${LANGUAGES.join(", ")}`);
+    errors.push("language must be one of: " + LANGUAGES.join(", "));
   }
   if (typeof m.entrypoint !== "string" || !m.entrypoint) errors.push("entrypoint must be non-empty");
   if (typeof m.inputSchema !== "string" || !m.inputSchema) errors.push("inputSchema must be non-empty");
@@ -45,15 +45,15 @@ export function validateManifest(
   } else {
     for (const perm of m.permissions) {
       if (typeof perm !== "string" || !PERM_SET.has(perm)) {
-        errors.push(`permissions has unknown value: ${String(perm)}`);
+        errors.push("permissions has unknown value: " + String(perm));
       }
     }
   }
   if (typeof m.risk !== "string" || !RISKS.includes(m.risk as CapabilityRisk)) {
-    errors.push(`risk must be one of: ${RISKS.join(", ")}`);
+    errors.push("risk must be one of: " + RISKS.join(", "));
   }
   if (typeof m.trust !== "string" || !TRUSTS.includes(m.trust as CapabilityTrust)) {
-    errors.push(`trust must be one of: ${TRUSTS.join(", ")}`);
+    errors.push("trust must be one of: " + TRUSTS.join(", "));
   }
   if (typeof m.maintainer !== "string" || !m.maintainer) errors.push("maintainer must be non-empty");
   if (typeof m.provenance !== "object" || m.provenance === null) {
@@ -65,6 +65,28 @@ export function validateManifest(
     if (typeof p.license !== "string") errors.push("provenance.license must be string");
     if (typeof p.version !== "string") errors.push("provenance.version must be string");
     if (!Array.isArray(p.modifications)) errors.push("provenance.modifications must be array");
+  }
+  if (m.execution !== undefined) {
+    if (typeof m.execution !== "object" || m.execution === null) {
+      errors.push("execution must be an object");
+    } else {
+      const e = m.execution as Record<string, unknown>;
+      if (e.timeoutMs !== undefined && (typeof e.timeoutMs !== "number" || e.timeoutMs <= 0)) {
+        errors.push("execution.timeoutMs must be a positive number");
+      }
+      if (e.cwd !== undefined && typeof e.cwd !== "string") {
+        errors.push("execution.cwd must be a string");
+      }
+      if (e.env !== undefined) {
+        if (typeof e.env !== "object" || e.env === null || Array.isArray(e.env)) {
+          errors.push("execution.env must be an object");
+        } else {
+          for (const [k, v] of Object.entries(e.env)) {
+            if (typeof v !== "string") errors.push("execution.env[" + k + "] must be a string");
+          }
+        }
+      }
+    }
   }
   if (errors.length) return { ok: false, errors };
   return { ok: true, value: value as CapabilityManifest };

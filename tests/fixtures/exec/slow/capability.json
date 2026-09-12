@@ -1,0 +1,22 @@
+{
+  "name": "slow",
+  "version": "0.1.0",
+  "description": "Fixture: sleeps for 10 seconds to test timeout enforcement.",
+  "language": "javascript",
+  "entrypoint": "index.js",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux", "darwin"],
+  "permissions": [],
+  "risk": "low",
+  "trust": "community",
+  "provenance": {
+    "sourceRepo": "https://example.com",
+    "sourceAuthor": "test",
+    "license": "MIT",
+    "version": "0.1.0",
+    "modifications": []
+  },
+  "maintainer": "test"
+}

@@ -13,6 +13,12 @@ export interface CapabilityProvenance {
   modifications: string[];
 }
 
+export interface CapabilityExecution {
+  timeoutMs?: number;
+  env?: Record<string, string>;
+  cwd?: string;
+}
+
 export interface CapabilityManifest {
   name: string;
   version: string;
@@ -28,6 +34,7 @@ export interface CapabilityManifest {
   trust: CapabilityTrust;
   provenance: CapabilityProvenance;
   maintainer: string;
+  execution?: CapabilityExecution;
 }
 
 export interface CapabilityRunResult {

@@ -1,0 +1,26 @@
+{
+  "name": "echo-env",
+  "version": "0.1.0",
+  "description": "Fixture: returns the value of SECSTREET_TEST_KEY from the environment.",
+  "language": "javascript",
+  "entrypoint": "index.js",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux", "darwin"],
+  "permissions": [],
+  "risk": "low",
+  "trust": "community",
+  "provenance": {
+    "sourceRepo": "https://example.com",
+    "sourceAuthor": "test",
+    "license": "MIT",
+    "version": "0.1.0",
+    "modifications": []
+  },
+  "maintainer": "test",
+  "execution": {
+    "env": { "SECSTREET_TEST_KEY": "hello-from-env" },
+    "timeoutMs": 5000
+  }
+}
