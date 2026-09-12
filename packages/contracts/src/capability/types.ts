@@ -1,0 +1,36 @@
+export type CapabilityRisk = "low" | "medium" | "high" | "critical";
+export type CapabilityTrust = "community" | "professional" | "verified" | "restricted";
+export type CapabilityLanguage = "typescript" | "python" | "rust" | "go" | "shell" | "binary";
+
+export interface CapabilityProvenance {
+  sourceRepo: string;
+  sourceAuthor: string;
+  license: string;
+  version: string;
+  modifications: string[];
+}
+
+export interface CapabilityManifest {
+  name: string;
+  version: string;
+  description: string;
+  language: CapabilityLanguage;
+  entrypoint: string;
+  inputSchema: string;
+  outputSchema: string;
+  dependencies: string[];
+  os: string[];
+  permissions: string[];
+  risk: CapabilityRisk;
+  trust: CapabilityTrust;
+  provenance: CapabilityProvenance;
+  maintainer: string;
+}
+
+export interface CapabilityRunResult {
+  ok: boolean;
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  durationMs: number;
+}

@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "required": ["events"],
+  "properties": {
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["timestamp", "user", "ip", "result"],
+        "properties": {
+          "timestamp": { "type": "string" },
+          "user": { "type": "string" },
+          "ip": { "type": "string" },
+          "result": { "type": "string", "enum": ["success", "failure"] }
+        }
+      }
+    }
+  }
+}

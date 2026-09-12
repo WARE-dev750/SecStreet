@@ -1,0 +1,10 @@
+packages:
+  - "packages/*"
+  - "packages/*/*"
+  - "apps/*"
+  - "capabilities/*"
+  - "capabilities/*/*"
+  - "services/*"
+  - "tests"
+allowBuilds:
+  esbuild: set this to true or false
