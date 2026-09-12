@@ -1,0 +1,16 @@
+{
+  "name": "@secstreet/security",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@secstreet/capability": "workspace:*",
+    "@secstreet/contracts": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit"
+  }
+}

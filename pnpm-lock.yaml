@@ -20,6 +20,9 @@ importers:
       '@secstreet/runtime':
         specifier: workspace:*
         version: link:packages/runtime
+      '@secstreet/security':
+        specifier: workspace:*
+        version: link:packages/security
       '@secstreet/workflow':
         specifier: workspace:*
         version: link:packages/workflow
@@ -76,9 +79,21 @@ importers:
       '@secstreet/runtime':
         specifier: workspace:*
         version: link:../runtime
+      '@secstreet/security':
+        specifier: workspace:*
+        version: link:../security
       '@secstreet/workflow':
         specifier: workspace:*
         version: link:../workflow
+
+  packages/security:
+    dependencies:
+      '@secstreet/capability':
+        specifier: workspace:*
+        version: link:../capability
+      '@secstreet/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   packages/workflow:
     dependencies:
