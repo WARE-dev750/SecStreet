@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "required": ["path", "sections"],
+  "properties": {
+    "path": { "type": "string" },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "instructionCount", "mnemonics"],
+        "properties": {
+          "name": { "type": "string" },
+          "instructionCount": { "type": "number" },
+          "mnemonics": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

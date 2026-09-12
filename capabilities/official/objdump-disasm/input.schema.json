@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "required": ["path"],
+  "properties": {
+    "path": { "type": "string", "minLength": 1 },
+    "section": { "type": "string", "description": "Optional section name to disassemble (e.g. .text). Defaults to all executable sections." }
+  }
+}

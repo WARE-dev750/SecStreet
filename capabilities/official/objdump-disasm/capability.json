@@ -1,0 +1,23 @@
+{
+  "name": "objdump-disasm",
+  "version": "0.1.0",
+  "description": "Disassemble the executable sections of a binary and return instruction mnemonics grouped by section.",
+  "language": "javascript",
+  "entrypoint": "index.js",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux", "darwin"],
+  "permissions": ["subprocess", "filesystem:read"],
+  "risk": "low",
+  "trust": "professional",
+  "provenance": {
+    "sourceRepo": "https://github.com/SecStreet/SecStreet",
+    "sourceAuthor": "SecStreet",
+    "license": "Proprietary",
+    "version": "0.1.0",
+    "modifications": ["wraps system objdump binary; parsing implemented in SecStreet"]
+  },
+  "maintainer": "SecStreet",
+  "execution": { "timeoutMs": 30000 }
+}

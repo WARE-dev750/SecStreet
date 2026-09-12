@@ -1,0 +1,23 @@
+{
+  "name": "xxd-hexdump",
+  "version": "0.1.0",
+  "description": "Produce a hex dump of a file with optional byte offset and length window.",
+  "language": "javascript",
+  "entrypoint": "index.js",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux", "darwin"],
+  "permissions": ["subprocess", "filesystem:read"],
+  "risk": "low",
+  "trust": "professional",
+  "provenance": {
+    "sourceRepo": "https://github.com/SecStreet/SecStreet",
+    "sourceAuthor": "SecStreet",
+    "license": "Proprietary",
+    "version": "0.1.0",
+    "modifications": ["wraps system xxd binary; parsing implemented in SecStreet"]
+  },
+  "maintainer": "SecStreet",
+  "execution": { "timeoutMs": 5000 }
+}
