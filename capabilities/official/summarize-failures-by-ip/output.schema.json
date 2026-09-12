@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "required": ["summary"],
+  "properties": {
+    "summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ip", "count"],
+        "properties": {
+          "ip": { "type": "string" },
+          "count": { "type": "number" }
+        }
+      }
+    }
+  }
+}

@@ -20,6 +20,7 @@
     "@types/node": "^22.10.2",
     "@secstreet/capability": "workspace:*",
     "@secstreet/contracts": "workspace:*",
-    "@secstreet/runtime": "workspace:*"
+    "@secstreet/runtime": "workspace:*",
+    "@secstreet/workflow": "workspace:*"
   }
 }

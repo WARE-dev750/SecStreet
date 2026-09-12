@@ -1,0 +1,22 @@
+{
+  "name": "summarize-failures-by-ip",
+  "version": "0.1.0",
+  "description": "Count failed authentication events per source IP, sorted descending.",
+  "language": "typescript",
+  "entrypoint": "index.js",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux", "darwin"],
+  "permissions": ["filesystem:read"],
+  "risk": "low",
+  "trust": "community",
+  "provenance": {
+    "sourceRepo": "https://github.com/SecStreet/SecStreet",
+    "sourceAuthor": "SecStreet",
+    "license": "MIT",
+    "version": "0.1.0",
+    "modifications": []
+  },
+  "maintainer": "SecStreet"
+}

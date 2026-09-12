@@ -1,18 +1,14 @@
 {
-  "name": "@secstreet/sdk",
+  "name": "@secstreet/workflow",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": {
-    "secstreet": "./dist/cli/cli.js"
-  },
   "dependencies": {
-    "@secstreet/contracts": "workspace:*",
     "@secstreet/capability": "workspace:*",
-    "@secstreet/runtime": "workspace:*",
-    "@secstreet/workflow": "workspace:*"
+    "@secstreet/contracts": "workspace:*",
+    "@secstreet/runtime": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

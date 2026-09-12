@@ -1,0 +1,22 @@
+{
+  "name": "filter-failed-logins",
+  "version": "0.1.0",
+  "description": "Keep only authentication events where result is failure.",
+  "language": "typescript",
+  "entrypoint": "index.js",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux", "darwin"],
+  "permissions": ["filesystem:read"],
+  "risk": "low",
+  "trust": "community",
+  "provenance": {
+    "sourceRepo": "https://github.com/SecStreet/SecStreet",
+    "sourceAuthor": "SecStreet",
+    "license": "MIT",
+    "version": "0.1.0",
+    "modifications": []
+  },
+  "maintainer": "SecStreet"
+}

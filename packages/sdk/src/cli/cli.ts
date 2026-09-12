@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { readFile } from "node:fs/promises";
 import { loadRegistry } from "@secstreet/capability";
 import { runCapability } from "@secstreet/runtime";
+import { runWorkflow, checkCompatibility } from "@secstreet/workflow";
 
 const CAPS_DIR = resolve(process.cwd(), "capabilities", "official");
 
@@ -13,6 +14,8 @@ Commands:
   list
   inspect <name>
   run <name> --input <json-or-file>
+  compat <producer> <consumer>
+  workflow <file.json>
 `);
 }
 
@@ -23,7 +26,9 @@ async function main(): Promise<void> {
   if (cmd === "list") {
     const caps = await loadRegistry(CAPS_DIR);
     if (!caps.length) { console.log("(no capabilities found)"); return; }
-    for (const c of caps) console.log(`${c.manifest.name}\t${c.manifest.version}\t${c.manifest.risk}\t${c.manifest.description}`);
+    for (const c of caps) {
+      console.log(`${c.manifest.name}\t${c.manifest.version}\t${c.manifest.risk}\t${c.manifest.description}`);
+    }
     return;
   }
 
@@ -49,12 +54,30 @@ async function main(): Promise<void> {
     try { input = JSON.parse(await readFile(inputArg, "utf8")); }
     catch { input = JSON.parse(inputArg); }
     const result = await runCapability({ capabilityDir: c.dir, manifest: c.manifest, input });
-    if (!result.ok) {
-      process.stderr.write(result.stderr);
-      process.exit(result.exitCode || 1);
-    }
+    if (!result.ok) { process.stderr.write(result.stderr); process.exit(result.exitCode || 1); }
     process.stdout.write(result.stdout.endsWith("\n") ? result.stdout : result.stdout + "\n");
     return;
+  }
+
+  if (cmd === "compat") {
+    const [producerName, consumerName] = rest;
+    if (!producerName || !consumerName) { console.error("usage: compat <producer> <consumer>"); process.exit(2); }
+    const caps = await loadRegistry(CAPS_DIR);
+    const producer = caps.find((x) => x.manifest.name === producerName);
+    const consumer = caps.find((x) => x.manifest.name === consumerName);
+    if (!producer) { console.error(`not found: ${producerName}`); process.exit(1); }
+    if (!consumer) { console.error(`not found: ${consumerName}`); process.exit(1); }
+    const result = await checkCompatibility(producer, consumer);
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(result.ok ? 0 : 1);
+  }
+
+  if (cmd === "workflow") {
+    const file = rest[0];
+    if (!file) { console.error("usage: workflow <file.json>"); process.exit(2); }
+    const result = await runWorkflow({ workflowPath: file, capabilitiesDir: CAPS_DIR });
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(result.ok ? 0 : 1);
   }
 
   usage();

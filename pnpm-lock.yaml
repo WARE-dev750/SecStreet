@@ -17,6 +17,9 @@ importers:
       '@secstreet/runtime':
         specifier: workspace:*
         version: link:packages/runtime
+      '@secstreet/workflow':
+        specifier: workspace:*
+        version: link:packages/workflow
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.2
@@ -48,6 +51,21 @@ importers:
         version: link:../contracts
 
   packages/sdk:
+    dependencies:
+      '@secstreet/capability':
+        specifier: workspace:*
+        version: link:../capability
+      '@secstreet/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@secstreet/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@secstreet/workflow':
+        specifier: workspace:*
+        version: link:../workflow
+
+  packages/workflow:
     dependencies:
       '@secstreet/capability':
         specifier: workspace:*

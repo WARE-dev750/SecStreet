@@ -1,0 +1,15 @@
+{
+  "name": "auth-failures",
+  "description": "Parse auth log, keep failed logins, count failures per IP.",
+  "steps": [
+    {
+      "id": "parse",
+      "capability": "parse-auth-log",
+      "input": {
+        "text": "Jan 10 12:00:01 host sshd[123]: Accepted password for alice from 10.0.0.1 port 22 ssh2\nJan 10 12:00:02 host sshd[124]: Failed password for bob from 10.0.0.2 port 22 ssh2\nJan 10 12:00:03 host sshd[125]: Failed password for bob from 10.0.0.2 port 22 ssh2\nJan 10 12:00:04 host sshd[126]: Failed password for carol from 10.0.0.3 port 22 ssh2"
+      }
+    },
+    { "id": "filter", "capability": "filter-failed-logins", "from": "parse" },
+    { "id": "summarize", "capability": "summarize-failures-by-ip", "from": "filter" }
+  ]
+}
