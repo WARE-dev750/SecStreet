@@ -1,0 +1,17 @@
+{
+  "name": "@secstreet/ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@secstreet/capability": "workspace:*",
+    "@secstreet/contracts": "workspace:*",
+    "@secstreet/workflow": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit"
+  }
+}

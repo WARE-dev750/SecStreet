@@ -4,12 +4,13 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { runCapability, evaluatePolicy } from "@secstreet/runtime";
 import { runWorkflow, checkCompatibility } from "@secstreet/workflow";
 import { Project, listLibrary, searchLibrary, resolveLibraries, writeSignature, buildLibraryIndex, verifyLibraryIndex, readLibraryIndex, writeLibraryIndex, scaffoldCapability, publishCapability, type AuditEntry } from "@secstreet/project";
-import { hashJson } from "@secstreet/capability";
+import { hashJson, loadRegistry } from "@secstreet/capability";
 import { DEFAULT_POLICY, type CapabilityManifest, type CapabilityTrust, type CapabilityLanguage, type CapabilityRisk } from "@secstreet/contracts";
 import { generateEd25519KeyPair, keyIdFromPublicKey, readPrivateKeyPem, readPublicKeyPem } from "@secstreet/security";
+import { MockProvider, OpenAICompatibleProvider, generateAdapter, scaffoldAdapter, type AIProvider } from "@secstreet/ai";
 
 function usage(): void {
-  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify|audit|keygen|trust|keys|sign|lib|new|publish>");
+  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify|audit|keygen|trust|keys|sign|lib|new|publish|ai>");
 }
 function getFlag(args: string[], flag: string): string | null {
   const i = args.indexOf(flag);
@@ -306,6 +307,59 @@ async function main(): Promise<void> {
     });
     console.log("published " + r.capability + "@" + r.version + " to " + r.installedTo + (r.signed ? " (signed " + r.keyId + ")" : ""));
     return;
+  }
+  if (cmd === "ai") {
+    const sub = positionals(rest)[0];
+    if (sub === "adapter") {
+      const producerName = positionals(rest)[1];
+      const consumerName = positionals(rest)[2];
+      if (!producerName || !consumerName) {
+        console.error("usage: ai adapter <producer> <consumer> [--name <adapter-name>]");
+        process.exit(2);
+      }
+      const customName = getFlag(rest, "--name") ?? undefined;
+      const p = await openProjectOrFail();
+      const caps = await p.loadInstalled();
+      const producer = caps.find((c) => c.manifest.name === producerName);
+      const consumer = caps.find((c) => c.manifest.name === consumerName);
+      if (!producer) { console.error("not installed: " + producerName); process.exit(1); }
+      if (!consumer) { console.error("not installed: " + consumerName); process.exit(1); }
+
+      let provider: AIProvider;
+      const endpoint = process.env.SECSTREET_AI_ENDPOINT;
+      const model = process.env.SECSTREET_AI_MODEL;
+      if (endpoint && model) {
+        provider = new OpenAICompatibleProvider({
+          endpoint,
+          model,
+          apiKey: process.env.SECSTREET_AI_KEY,
+          timeoutMs: Number(process.env.SECSTREET_AI_TIMEOUT_MS ?? "60000"),
+        });
+        console.log("using provider " + provider.name);
+      } else {
+        provider = new MockProvider();
+        console.log("using provider mock (set SECSTREET_AI_ENDPOINT and SECSTREET_AI_MODEL for a real model)");
+      }
+
+      const generated = await generateAdapter({ producer, consumer, adapterName: customName, provider });
+      const tmpDir = join(p.root, ".secstreet", "staging-ai");
+      await mkdir(tmpDir, { recursive: true });
+      await scaffoldAdapter({
+        root: tmpDir,
+        generated,
+        producerName: producer.manifest.name,
+        consumerName: consumer.manifest.name,
+      });
+      const generatedCaps = await loadRegistry(tmpDir);
+      const adapterCap = generatedCaps.find((c) => c.manifest.name === generated.adapterName);
+      if (!adapterCap) throw new Error("generated adapter not found after scaffold");
+      await p.install(adapterCap, "ai:" + generated.provider + "/" + generated.model);
+      console.log("generated adapter " + generated.adapterName);
+      console.log("rationale: " + generated.rationale);
+      return;
+    }
+    console.error("usage: ai <adapter>");
+    process.exit(2);
   }
   if (cmd === "run") {
     const name = positionals(rest)[0];

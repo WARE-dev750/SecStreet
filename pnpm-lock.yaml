@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@secstreet/ai':
+        specifier: workspace:*
+        version: link:packages/ai
       '@secstreet/capability':
         specifier: workspace:*
         version: link:packages/capability
@@ -38,6 +41,18 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.2)
+
+  packages/ai:
+    dependencies:
+      '@secstreet/capability':
+        specifier: workspace:*
+        version: link:../capability
+      '@secstreet/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@secstreet/workflow':
+        specifier: workspace:*
+        version: link:../workflow
 
   packages/capability:
     dependencies:
@@ -70,6 +85,9 @@ importers:
 
   packages/sdk:
     dependencies:
+      '@secstreet/ai':
+        specifier: workspace:*
+        version: link:../ai
       '@secstreet/capability':
         specifier: workspace:*
         version: link:../capability

@@ -20,6 +20,9 @@
       "path": "packages/project"
     },
     {
+      "path": "packages/ai"
+    },
+    {
       "path": "packages/sdk"
     }
   ]

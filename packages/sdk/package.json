@@ -14,7 +14,8 @@
     "@secstreet/runtime": "workspace:*",
     "@secstreet/workflow": "workspace:*",
     "@secstreet/project": "workspace:*",
-    "@secstreet/security": "workspace:*"
+    "@secstreet/security": "workspace:*",
+    "@secstreet/ai": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",
