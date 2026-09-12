@@ -14,7 +14,7 @@
     <span class="spacer"></span>
     <button class="btn" id="btnPalette" title="Command palette (Ctrl+P)">⌘ Files</button>
     <button class="btn" id="btnToggleRight" title="Toggle right panel">Panel</button>
-    <button class="btn" id="btnToggleBottom" title="Toggle bottom panel (Ctrl+`)">Console</button>
+    <button class="btn" id="btnToggleBottom" title="Toggle bottom panel">Console</button>
   </div>
 
   <div class="activity">
@@ -33,11 +33,6 @@
     <div class="icon" data-view="registry" title="Registry">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"/></svg>
     </div>
-    <div class="bottom">
-      <div class="icon" id="btnSettings" title="Settings">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-      </div>
-    </div>
   </div>
 
   <div class="sidebar" id="sidebar">
@@ -45,20 +40,21 @@
     <div class="sidebar-body" id="sidebarBody"></div>
   </div>
 
-  <div class="main">
+  <div class="main" id="mainArea">
     <div class="tabs" id="tabs"></div>
     <div class="breadcrumb" id="breadcrumb"></div>
-    <div class="editor-host" id="editorHost">
-      <div class="empty-state" id="emptyState">
-        <div class="empty-inner">
-          <div class="empty-hint">No file open</div>
-          <div class="empty-actions">
-            <span><kbd>Ctrl</kbd>+<kbd>P</kbd> &nbsp;files</span>
-            <span><kbd>Ctrl</kbd>+<kbd>`</kbd> &nbsp;console</span>
+    <div class="main-content" id="mainContent">
+      <div class="editor-host" id="editorHost">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-inner">
+            <div class="empty-hint">No file open</div>
+            <div class="empty-actions">
+              <span><kbd>Ctrl</kbd>+<kbd>P</kbd> &nbsp;files</span>
+              <span><kbd>Ctrl</kbd>+<kbd>`</kbd> &nbsp;console</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
       <div class="canvas-host" id="canvasHost"></div>
     </div>
     <div class="bottom" id="bottom">

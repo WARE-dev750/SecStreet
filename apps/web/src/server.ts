@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
 import { readFile, readdir, stat, writeFile } from "node:fs/promises";
-import { join, resolve, normalize, relative, isAbsolute } from "node:path";
+import { join, resolve, normalize } from "node:path";
 import { Project, type AuditEntry } from "@secstreet/project";
 import { runCapability } from "@secstreet/runtime";
 import { runWorkflow } from "@secstreet/workflow";
@@ -147,10 +147,6 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
       }
       if (p === "/icons.js") {
         const js = await readFile(join(publicDir, "icons.js"), "utf8");
-        return send(res, 200, js, "application/javascript");
-      }
-      if (p === "/canvas.js") {
-        const js = await readFile(join(publicDir, "canvas.js"), "utf8");
         return send(res, 200, js, "application/javascript");
       }
       if (p === "/canvas.js") {

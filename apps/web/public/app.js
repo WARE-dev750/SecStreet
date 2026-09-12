@@ -239,14 +239,13 @@ async function renderAudit(body) {
 // ===== tabs / editor =====
 async function openFile(path) {
   const existing = state.tabs.find((t) => t.path === path);
-  if (existing) { state.activeTab = path; renderTabs(); attachEditor(path); renderRight(); return; }
+  if (existing) { state.activeTab = path; renderTabs(); activateTab(path); renderRight(); return; }
   try {
     const data = await api("/api/file?path=" + encodeURIComponent(path));
     state.tabs.push({ path, content: data.content, lang: data.language, dirty: false });
     state.activeTab = path;
     renderTabs();
-    if (isWorkflow(path)) mountCanvas(path);
-    else attachEditor(path);
+    activateTab(path);
     renderRight();
     renderSidebar();
   } catch (err) {
@@ -297,7 +296,7 @@ function mountCanvas(path) {
   $("emptyState").style.display = "none";
   $("editorHost").style.display = "none";
   const ch = $("canvasHost");
-  ch.style.display = "block";
+  ch.style.display = "flex";
   if (window.Canvas) {
     window.Canvas.mount(ch, path, (dirty) => {
       const t = state.tabs.find((x) => x.path === path);
@@ -308,13 +307,6 @@ function mountCanvas(path) {
   } else {
     ch.innerHTML = '<div class="canvas-error">canvas.js not loaded</div>';
   }
-}
-
-function activateTab(path) {
-  const t = state.tabs.find((x) => x.path === path);
-  if (!t) { showEmpty(); return; }
-  if (isWorkflow(path)) mountCanvas(path);
-  else attachEditor(path);
 }
 
 function activateTab(path) {

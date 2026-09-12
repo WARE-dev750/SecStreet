@@ -28,6 +28,20 @@
     return el;
   }
 
+  function createsCycle(steps, fromId, toId) {
+    // walk backward from fromId; if we reach toId, adding this edge closes a loop
+    const byId = new Map(steps.map((s) => [s.id, s]));
+    let cur = byId.get(fromId);
+    const seen = new Set();
+    while (cur) {
+      if (cur.id === toId) return true;
+      if (seen.has(cur.id)) return false;
+      seen.add(cur.id);
+      cur = cur.from ? byId.get(cur.from) : null;
+    }
+    return false;
+  }
+
   function drawConnections() {
     if (!S || !S.svg) return;
     const stage = S.svg.parentElement;
@@ -95,7 +109,7 @@
     host.classList.add("canvas-host-visible");
     S = {
       host, path, workflow: null, dirty: false, onDirty: onDirty || null,
-      drag: null, svg: null, nodeEls: new Map()
+      drag: null, svg: null, nodeEls: new Map(), pending: null, tempLine: null
     };
 
     let raw;
@@ -123,12 +137,15 @@
       '<div class="canvas-toolbar">' +
         '<span class="canvas-name">' + (S.workflow.name || path) + "</span>" +
         '<span class="canvas-count">' + S.workflow.steps.length + " steps</span>" +
+        '<span class="canvas-debug" id="cDebug"></span>' +
         '<span class="canvas-spacer"></span>' +
         '<button class="canvas-btn" id="cReset">Reset layout</button>' +
         '<button class="canvas-btn primary" id="cSave">Save</button>' +
       "</div>" +
       '<div class="canvas-stage" id="cStage"></div>';
     host.appendChild(shell);
+    const dbg = (msg) => { const el = shell.querySelector("#cDebug"); if (el) el.textContent = msg; };
+    window.addEventListener("error", (e) => dbg("ERR: " + e.message));
 
     const stage = shell.querySelector("#cStage");
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -136,12 +153,95 @@
     stage.appendChild(svg);
     S.svg = svg;
 
-    for (const step of S.workflow.steps) {
-      const el = renderNode(step);
-      stage.appendChild(el);
-      S.nodeEls.set(step.id, el);
+    let created = 0;
+    for (let i = 0; i < S.workflow.steps.length; i++) {
+      const step = S.workflow.steps[i];
+      if (typeof step.x !== "number" || !isFinite(step.x)) step.x = 40 + i * 240;
+      if (typeof step.y !== "number" || !isFinite(step.y)) step.y = 100;
+      if (step.x < 0) step.x = 40 + i * 240;
+      if (step.y < 0) step.y = 100;
+      try {
+        const el = renderNode(step);
+        stage.appendChild(el);
+        S.nodeEls.set(step.id, el);
+        created++;
+      } catch (err) {
+        dbg("render fail on " + step.id + ": " + err.message);
+      }
     }
+    dbg("rendered " + created + "/" + S.workflow.steps.length + " · stage " + stage.clientWidth + "x" + stage.clientHeight);
     drawConnections();
+
+    // --- drag-to-connect ---
+    stage.addEventListener("mousedown", (e) => {
+      const outPort = e.target.closest(".cport-out");
+      if (!outPort) return;
+      const node = outPort.closest(".cnode");
+      if (!node) return;
+      const fromId = node.dataset.stepId;
+      S.pending = { fromId };
+      const stageRect = stage.getBoundingClientRect();
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      line.setAttribute("class", "cedge pending");
+      S.svg.appendChild(line);
+      S.tempLine = line;
+      updateTempLine(e, stageRect);
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    function updateTempLine(e, stageRect) {
+      if (!S.pending || !S.tempLine) return;
+      const fromEl = S.nodeEls.get(S.pending.fromId);
+      if (!fromEl) return;
+      const fromStep = S.workflow.steps.find((x) => x.id === S.pending.fromId);
+      if (!fromStep) return;
+      const x1 = fromStep.x + 180;
+      const y1 = fromStep.y + 38;
+      const x2 = e.clientX - stageRect.left + stage.scrollLeft;
+      const y2 = e.clientY - stageRect.top + stage.scrollTop;
+      const dx = Math.max(40, Math.abs(x2 - x1) * 0.5);
+      S.tempLine.setAttribute("d", "M " + x1 + " " + y1 + " C " + (x1 + dx) + " " + y1 + ", " + (x2 - dx) + " " + y2 + ", " + x2 + " " + y2);
+    }
+
+    stage.addEventListener("mousemove", (e) => {
+      if (!S.pending) return;
+      updateTempLine(e, stage.getBoundingClientRect());
+    });
+
+    stage.addEventListener("mouseup", (e) => {
+      if (!S.pending) return;
+      const target = e.target.closest(".cnode");
+      const fromId = S.pending.fromId;
+      S.pending = null;
+      if (S.tempLine) { S.tempLine.remove(); S.tempLine = null; }
+      if (!target) return;
+      const toId = target.dataset.stepId;
+      if (toId === fromId) return;
+      const targetStep = S.workflow.steps.find((x) => x.id === toId);
+      if (!targetStep) return;
+      // reject if this would create a cycle
+      if (createsCycle(S.workflow.steps, fromId, toId)) {
+        console.warn("[canvas] refused: would create a cycle");
+        return;
+      }
+      targetStep.from = fromId;
+      delete targetStep.input;
+      const el = S.nodeEls.get(toId);
+      if (el) {
+        const sub = el.querySelector(".cnode-from");
+        if (sub) sub.textContent = "from " + fromId;
+      }
+      drawConnections();
+      markDirty(true);
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (S && S.pending) {
+        S.pending = null;
+        if (S.tempLine) { S.tempLine.remove(); S.tempLine = null; }
+      }
+    });
 
     shell.querySelector("#cSave").addEventListener("click", save);
     shell.querySelector("#cReset").addEventListener("click", () => {

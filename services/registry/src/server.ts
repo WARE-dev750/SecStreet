@@ -2,7 +2,6 @@ import { createServer, type IncomingMessage, type ServerResponse, type Server } 
 import { readFile, readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { loadRegistry, hashDirectory } from "@secstreet/capability";
-import { readLibraryIndex, writeLibraryIndex, buildLibraryIndex } from "@secstreet/project";
 
 export interface RegistryServerOptions {
   libraryDir: string;
@@ -18,10 +17,6 @@ export interface RegistryServerHandle {
   port: number;
   url: string;
   close(): Promise<void>;
-}
-
-async function readBody(_req: IncomingMessage): Promise<void> {
-  return;
 }
 
 async function listFiles(dir: string, base = ""): Promise<Record<string, string>> {
