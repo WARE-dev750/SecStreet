@@ -14,6 +14,9 @@ importers:
       '@secstreet/contracts':
         specifier: workspace:*
         version: link:packages/contracts
+      '@secstreet/project':
+        specifier: workspace:*
+        version: link:packages/project
       '@secstreet/runtime':
         specifier: workspace:*
         version: link:packages/runtime
@@ -41,6 +44,15 @@ importers:
 
   packages/contracts: {}
 
+  packages/project:
+    dependencies:
+      '@secstreet/capability':
+        specifier: workspace:*
+        version: link:../capability
+      '@secstreet/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
   packages/runtime:
     dependencies:
       '@secstreet/capability':
@@ -58,6 +70,9 @@ importers:
       '@secstreet/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@secstreet/project':
+        specifier: workspace:*
+        version: link:../project
       '@secstreet/runtime':
         specifier: workspace:*
         version: link:../runtime

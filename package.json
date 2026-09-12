@@ -21,6 +21,7 @@
     "@secstreet/capability": "workspace:*",
     "@secstreet/contracts": "workspace:*",
     "@secstreet/runtime": "workspace:*",
-    "@secstreet/workflow": "workspace:*"
+    "@secstreet/workflow": "workspace:*",
+    "@secstreet/project": "workspace:*"
   }
 }
