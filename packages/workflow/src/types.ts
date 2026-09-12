@@ -1,9 +1,25 @@
+export type ConditionOp =
+  | "equals"
+  | "notEquals"
+  | "contains"
+  | "exists"
+  | "greaterThan"
+  | "lessThan";
+
+export interface StepCondition {
+  step: string;
+  path: string;
+  op: ConditionOp;
+  value?: unknown;
+}
+
 export interface WorkflowStep {
   id: string;
   capability: string;
   input?: unknown;
   from?: string;
   timeoutMs?: number;
+  when?: StepCondition;
 }
 
 export interface Workflow {
@@ -21,6 +37,7 @@ export interface StepResult {
   error?: string;
   durationMs: number;
   insertedAdapter?: boolean;
+  skipped?: boolean;
 }
 
 export interface WorkflowResult {

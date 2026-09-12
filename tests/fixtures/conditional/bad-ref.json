@@ -1,0 +1,1 @@
+{"name":"bad-ref","steps":[{"id":"a","capability":"emit-a","input":{}},{"id":"b","capability":"emit-b","input":{},"when":{"step":"missing","path":"x","op":"equals","value":1}}]}

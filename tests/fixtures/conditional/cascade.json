@@ -1,0 +1,8 @@
+{
+  "name": "cascade",
+  "steps": [
+    { "id": "seed", "capability": "emit-a", "input": {} },
+    { "id": "gated", "capability": "emit-b", "input": {}, "when": { "step": "seed", "path": "branch", "op": "equals", "value": "nope" } },
+    { "id": "after-gated", "capability": "emit-a", "from": "gated" }
+  ]
+}

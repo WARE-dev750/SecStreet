@@ -1,0 +1,1 @@
+{ "type": "object", "required": ["branch", "value"], "properties": { "branch": { "type": "string" }, "value": { "type": "number" } } }

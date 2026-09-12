@@ -1,0 +1,8 @@
+{
+  "name": "then-a",
+  "steps": [
+    { "id": "seed", "capability": "emit-a", "input": {} },
+    { "id": "on-a", "capability": "emit-a", "input": {}, "when": { "step": "seed", "path": "branch", "op": "equals", "value": "a" } },
+    { "id": "on-b", "capability": "emit-b", "input": {}, "when": { "step": "seed", "path": "branch", "op": "equals", "value": "b" } }
+  ]
+}

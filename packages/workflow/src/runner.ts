@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { loadRegistry, type RegisteredCapability } from "@secstreet/capability";
 import { runCapability } from "@secstreet/runtime";
 import { checkCompatibility } from "./compatibility.js";
+import { evaluateCondition } from "./condition.js";
 import type { Workflow, WorkflowResult, StepResult } from "./types.js";
 
 export interface RunWorkflowOptions {
@@ -42,6 +43,7 @@ export async function runWorkflow(opts: RunWorkflowOptions): Promise<WorkflowRes
 
   const outputs = new Map<string, unknown>();
   const producers = new Map<string, RegisteredCapability>();
+  const skipped = new Set<string>();
   const steps: StepResult[] = [];
   let lastOutput: unknown;
 
@@ -49,12 +51,30 @@ export async function runWorkflow(opts: RunWorkflowOptions): Promise<WorkflowRes
     if (!step.id || !step.capability) {
       return { name: workflow.name, ok: false, steps, error: "each step requires id and capability" };
     }
-    if (outputs.has(step.id)) {
+    if (outputs.has(step.id) || skipped.has(step.id)) {
       return { name: workflow.name, ok: false, steps, error: "duplicate step id: " + step.id };
     }
     const cap = byName.get(step.capability);
     if (!cap) {
       return { name: workflow.name, ok: false, steps, error: "capability not found: " + step.capability };
+    }
+
+    if (step.from && skipped.has(step.from)) {
+      steps.push({ id: step.id, capability: step.capability, ok: true, skipped: true, durationMs: 0 });
+      skipped.add(step.id);
+      continue;
+    }
+
+    if (step.when) {
+      const evalResult = evaluateCondition(step.when, outputs);
+      if (!evalResult.ok) {
+        return { name: workflow.name, ok: false, steps, error: "step " + step.id + ": " + evalResult.reason };
+      }
+      if (!evalResult.result) {
+        steps.push({ id: step.id, capability: step.capability, ok: true, skipped: true, durationMs: 0 });
+        skipped.add(step.id);
+        continue;
+      }
     }
 
     let input: unknown;
