@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { validateProjectManifest, type ProjectManifest, type InstalledCapabilityRecord } from "@secstreet/contracts";
 import { loadRegistry, hashDirectory, type RegisteredCapability } from "@secstreet/capability";
+import { AuditLog, auditPathFor, type AuditEntry } from "./audit.js";
 
 const MANIFEST = "secstreet.json";
 
@@ -44,6 +45,7 @@ export class Project {
   }
 
   get manifestData(): ProjectManifest { return this.manifest; }
+  get auditLog(): AuditLog { return new AuditLog(auditPathFor(this.root)); }
   get capabilitiesDir(): string { return join(this.root, "capabilities"); }
 
   async save(): Promise<void> {
@@ -73,6 +75,10 @@ export class Project {
     delete this.manifest.installed[name];
     await this.save();
   }
+
+  async recordAudit(entry: AuditEntry): Promise<void> { await this.auditLog.append(entry); }
+  async readAudit(): Promise<AuditEntry[]> { return this.auditLog.read(); }
+  async tailAudit(n: number): Promise<AuditEntry[]> { return this.auditLog.tail(n); }
 
   async loadInstalled(): Promise<RegisteredCapability[]> {
     try {

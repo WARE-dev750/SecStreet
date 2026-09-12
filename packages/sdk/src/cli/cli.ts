@@ -3,11 +3,12 @@ import { resolve } from "node:path";
 import { readFile } from "node:fs/promises";
 import { runCapability, evaluatePolicy } from "@secstreet/runtime";
 import { runWorkflow, checkCompatibility } from "@secstreet/workflow";
-import { Project, listLibrary, searchLibrary, resolveLibraries } from "@secstreet/project";
-import { DEFAULT_POLICY } from "@secstreet/contracts";
+import { Project, listLibrary, searchLibrary, resolveLibraries, type AuditEntry } from "@secstreet/project";
+import { hashJson } from "@secstreet/capability";
+import { DEFAULT_POLICY, type CapabilityManifest } from "@secstreet/contracts";
 
 function usage(): void {
-  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify>");
+  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify|audit>");
 }
 
 function getFlag(args: string[], flag: string): string | null {
@@ -22,7 +23,7 @@ function positionals(args: string[]): string[] {
   const out: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const a = args[i] as string;
-    if (a === "--library" || a === "--input") { i++; continue; }
+    if (a === "--library" || a === "--input" || a === "--tail") { i++; continue; }
     if (a.startsWith("--")) continue;
     out.push(a);
   }
@@ -33,6 +34,34 @@ async function openProjectOrFail(): Promise<Project> {
   const root = Project.findRoot(process.cwd());
   if (!root) throw new Error("not inside a SecStreet project (no secstreet.json)");
   return Project.open(root);
+}
+
+function auditFor(
+  manifest: CapabilityManifest,
+  integrity: string,
+  input: unknown,
+  outcome: AuditEntry["outcome"],
+  exitCode: number,
+  durationMs: number,
+  output: unknown,
+  opts: { workflow?: string; stepId?: string; kind?: AuditEntry["kind"] } = {}
+): AuditEntry {
+  return {
+    ts: new Date().toISOString(),
+    kind: opts.kind ?? "run",
+    capability: manifest.name,
+    version: manifest.version,
+    integrity,
+    trust: manifest.trust,
+    declared: manifest.permissions as string[],
+    inputHash: hashJson(input),
+    outputHash: output === undefined ? "" : hashJson(output),
+    exitCode,
+    durationMs,
+    outcome,
+    workflow: opts.workflow,
+    stepId: opts.stepId,
+  };
 }
 
 async function main(): Promise<void> {
@@ -138,28 +167,58 @@ async function main(): Promise<void> {
     process.exit(ok ? 0 : 1);
   }
 
+  if (cmd === "audit") {
+    const p = await openProjectOrFail();
+    const jsonFlag = rest.includes("--json");
+    const tailFlag = getFlag(rest, "--tail");
+    const n = tailFlag ? Number(tailFlag) : 20;
+    const entries = await p.tailAudit(n);
+    if (!entries.length) { console.log("(no audit entries)"); return; }
+    if (jsonFlag) {
+      for (const e of entries) console.log(JSON.stringify(e));
+      return;
+    }
+    for (const e of entries) {
+      const when = e.ts.replace("T", " ").slice(0, 19);
+      const tag = e.outcome === "ok" ? "OK  " : e.outcome.toUpperCase().padEnd(4);
+      const wf = e.workflow ? " [" + e.workflow + (e.stepId ? ":" + e.stepId : "") + "]" : "";
+      console.log(tag + "  " + when + "  " + e.capability + "@" + e.version + "  exit=" + e.exitCode + "  " + e.durationMs + "ms" + wf);
+    }
+    return;
+  }
+
   if (cmd === "run") {
     const name = positionals(rest)[0];
     const inputArg = getFlag(rest, "--input");
     if (!name || !inputArg) { console.error("usage: run <name> --input <json-or-file>"); process.exit(2); }
     const p = await openProjectOrFail();
-    const verified = await p.verify(name);
-    if (!verified[0]?.ok) {
-      console.error("integrity check failed for " + name + " — reinstall with: secstreet remove " + name + " && secstreet add " + name);
-      process.exit(4);
-    }
     const caps = await p.loadInstalled();
     const c = caps.find((x) => x.manifest.name === name);
     if (!c) { console.error("not installed: " + name); process.exit(1); }
     let input: unknown;
     try { input = JSON.parse(await readFile(inputArg, "utf8")); }
     catch { input = JSON.parse(inputArg); }
+
+    const rec = p.manifestData.installed[name];
+    const recordedIntegrity = rec?.integrity ?? "";
+    const verified = await p.verify(name);
+    if (!verified[0]?.ok) {
+      await p.recordAudit(auditFor(c.manifest, recordedIntegrity, input, "denied-integrity", 4, 0, undefined));
+      console.error("integrity check failed for " + name + " — reinstall with: secstreet remove " + name + " && secstreet add " + name);
+      process.exit(4);
+    }
+
     const r = await runCapability({ capabilityDir: c.dir, manifest: c.manifest, input });
     if (!r.ok) {
+      const outcome = r.deniedByPolicy ? "denied-policy" : "error";
+      await p.recordAudit(auditFor(c.manifest, recordedIntegrity, input, outcome, r.exitCode, r.durationMs, undefined));
       if (r.deniedByPolicy) console.error("denied by policy: " + r.deniedByPolicy.reason);
       else process.stderr.write(r.stderr);
       process.exit(r.exitCode || 1);
     }
+
+    const parsed = r.stdout.trim() ? JSON.parse(r.stdout) : undefined;
+    await p.recordAudit(auditFor(c.manifest, recordedIntegrity, input, "ok", 0, r.durationMs, parsed));
     process.stdout.write(r.stdout.endsWith("\n") ? r.stdout : r.stdout + "\n");
     return;
   }
@@ -171,10 +230,24 @@ async function main(): Promise<void> {
     const all = await p.verify();
     const bad = all.filter((r) => !r.ok);
     if (bad.length) {
+      for (const b of bad) {
+        const rec = p.manifestData.installed[b.name];
+        const caps = await p.loadInstalled();
+        const c = caps.find((x) => x.manifest.name === b.name);
+        if (c) await p.recordAudit(auditFor(c.manifest, rec?.integrity ?? "", {}, "denied-integrity", 4, 0, undefined, { kind: "workflow-step", workflow: file, stepId: b.name }));
+      }
       console.error("integrity check failed for: " + bad.map((r) => r.name).join(", "));
       process.exit(4);
     }
     const r = await runWorkflow({ workflowPath: resolve(process.cwd(), file), capabilitiesDir: p.capabilitiesDir });
+    const capsByName = new Map((await p.loadInstalled()).map((c) => [c.manifest.name, c]));
+    for (const s of r.steps) {
+      const c = capsByName.get(s.capability);
+      if (!c) continue;
+      const rec = p.manifestData.installed[s.capability];
+      const outcome: AuditEntry["outcome"] = s.ok ? "ok" : (s.error?.startsWith("policy denied") ? "denied-policy" : "error");
+      await p.recordAudit(auditFor(c.manifest, rec?.integrity ?? "", s.output ?? {}, outcome, s.ok ? 0 : 1, s.durationMs, s.output, { kind: "workflow-step", workflow: r.name, stepId: s.id }));
+    }
     console.log(JSON.stringify(r, null, 2));
     process.exit(r.ok ? 0 : 1);
   }
