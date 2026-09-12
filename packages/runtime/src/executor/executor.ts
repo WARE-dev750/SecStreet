@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
-import { join } from "node:path";
-import type { CapabilityRunResult, CapabilityManifest } from "@secstreet/contracts";
+import { isAbsolute, join } from "node:path";
+import { interpreterFor, type CapabilityRunResult, type CapabilityManifest } from "@secstreet/contracts";
 
 export interface RunOptions {
   capabilityDir: string;
@@ -11,13 +11,19 @@ export interface RunOptions {
 
 export async function runCapability(opts: RunOptions): Promise<CapabilityRunResult> {
   const { capabilityDir, manifest, input, timeoutMs = 15000 } = opts;
-  const entry = join(capabilityDir, manifest.entrypoint);
+  const entryPath = isAbsolute(manifest.entrypoint)
+    ? manifest.entrypoint
+    : join(capabilityDir, manifest.entrypoint);
   const started = Date.now();
 
+  const spec = interpreterFor(manifest.language);
+  const command = manifest.language === "binary" ? entryPath : spec.command;
+  const args = manifest.language === "binary" ? spec.args : [...spec.args, entryPath];
+
   return new Promise<CapabilityRunResult>((resolve) => {
-    const child = spawn(process.execPath, [entry], {
+    const child = spawn(command, args, {
       cwd: capabilityDir,
-      stdio: ["pipe", "pipe", "pipe"]
+      stdio: ["pipe", "pipe", "pipe"],
     });
 
     let stdout = "";

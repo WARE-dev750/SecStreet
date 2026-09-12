@@ -1,0 +1,22 @@
+{
+  "name": "extract-source-ips",
+  "version": "0.1.0",
+  "description": "Extract unique source IPs from a list of auth events, sorted by first appearance.",
+  "language": "python",
+  "entrypoint": "main.py",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux", "darwin"],
+  "permissions": [],
+  "risk": "low",
+  "trust": "community",
+  "provenance": {
+    "sourceRepo": "https://github.com/SecStreet/SecStreet",
+    "sourceAuthor": "SecStreet",
+    "license": "MIT",
+    "version": "0.1.0",
+    "modifications": []
+  },
+  "maintainer": "SecStreet"
+}
