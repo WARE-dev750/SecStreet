@@ -1,0 +1,23 @@
+{
+  "name": "hash-file",
+  "version": "0.1.0",
+  "description": "Compute the sha256 hash of a file by wrapping sha256sum.",
+  "language": "javascript",
+  "entrypoint": "index.js",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux", "darwin"],
+  "permissions": ["subprocess", "filesystem:read"],
+  "risk": "low",
+  "trust": "professional",
+  "provenance": {
+    "sourceRepo": "https://github.com/SecStreet/SecStreet",
+    "sourceAuthor": "SecStreet",
+    "license": "MIT",
+    "version": "0.1.0",
+    "modifications": ["wraps system sha256sum binary; parsing implemented in SecStreet"]
+  },
+  "maintainer": "SecStreet",
+  "execution": { "timeoutMs": 10000 }
+}

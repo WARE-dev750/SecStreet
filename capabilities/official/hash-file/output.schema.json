@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "required": ["path", "sha256"],
+  "properties": {
+    "path": { "type": "string" },
+    "sha256": { "type": "string" }
+  }
+}

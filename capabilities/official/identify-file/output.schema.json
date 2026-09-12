@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["path", "mime", "description"],
+  "properties": {
+    "path": { "type": "string" },
+    "mime": { "type": "string" },
+    "description": { "type": "string" }
+  }
+}

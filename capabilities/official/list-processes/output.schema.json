@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "required": ["processes"],
+  "properties": {
+    "processes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["pid", "user", "comm"],
+        "properties": {
+          "pid": { "type": "number" },
+          "user": { "type": "string" },
+          "comm": { "type": "string" },
+          "args": { "type": "string" }
+        }
+      }
+    }
+  }
+}

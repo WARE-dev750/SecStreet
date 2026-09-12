@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "required": ["filesystems"],
+  "properties": {
+    "filesystems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["filesystem", "mount", "blocksKb", "usedKb", "availKb", "usePercent"],
+        "properties": {
+          "filesystem": { "type": "string" },
+          "mount": { "type": "string" },
+          "blocksKb": { "type": "number" },
+          "usedKb": { "type": "number" },
+          "availKb": { "type": "number" },
+          "usePercent": { "type": "number" }
+        }
+      }
+    }
+  }
+}

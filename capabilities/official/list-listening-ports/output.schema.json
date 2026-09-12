@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "required": ["sockets"],
+  "properties": {
+    "sockets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["proto", "state", "local", "peer"],
+        "properties": {
+          "proto": { "type": "string" },
+          "state": { "type": "string" },
+          "local": { "type": "string" },
+          "peer": { "type": "string" }
+        }
+      }
+    }
+  }
+}
