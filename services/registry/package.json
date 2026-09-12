@@ -1,0 +1,17 @@
+{
+  "name": "@secstreet/service-registry",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@secstreet/capability": "workspace:*",
+    "@secstreet/contracts": "workspace:*",
+    "@secstreet/project": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit"
+  }
+}
