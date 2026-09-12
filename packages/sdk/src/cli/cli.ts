@@ -7,7 +7,7 @@ import { Project, listLibrary, searchLibrary, resolveLibraries } from "@secstree
 import { DEFAULT_POLICY } from "@secstreet/contracts";
 
 function usage(): void {
-  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check>");
+  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify>");
 }
 
 function getFlag(args: string[], flag: string): string | null {
@@ -125,11 +125,29 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (cmd === "verify") {
+    const name = positionals(rest)[0];
+    const p = await openProjectOrFail();
+    const results = await p.verify(name);
+    if (!results.length) { console.log("(nothing installed)"); return; }
+    let ok = true;
+    for (const r of results) {
+      console.log((r.ok ? "OK  " : "FAIL") + "  " + r.name + "\t" + r.actual.slice(0, 20) + "...");
+      if (!r.ok) ok = false;
+    }
+    process.exit(ok ? 0 : 1);
+  }
+
   if (cmd === "run") {
     const name = positionals(rest)[0];
     const inputArg = getFlag(rest, "--input");
     if (!name || !inputArg) { console.error("usage: run <name> --input <json-or-file>"); process.exit(2); }
     const p = await openProjectOrFail();
+    const verified = await p.verify(name);
+    if (!verified[0]?.ok) {
+      console.error("integrity check failed for " + name + " — reinstall with: secstreet remove " + name + " && secstreet add " + name);
+      process.exit(4);
+    }
     const caps = await p.loadInstalled();
     const c = caps.find((x) => x.manifest.name === name);
     if (!c) { console.error("not installed: " + name); process.exit(1); }
@@ -150,6 +168,12 @@ async function main(): Promise<void> {
     const file = positionals(rest)[0];
     if (!file) { console.error("usage: workflow <file.json>"); process.exit(2); }
     const p = await openProjectOrFail();
+    const all = await p.verify();
+    const bad = all.filter((r) => !r.ok);
+    if (bad.length) {
+      console.error("integrity check failed for: " + bad.map((r) => r.name).join(", "));
+      process.exit(4);
+    }
     const r = await runWorkflow({ workflowPath: resolve(process.cwd(), file), capabilitiesDir: p.capabilitiesDir });
     console.log(JSON.stringify(r, null, 2));
     process.exit(r.ok ? 0 : 1);

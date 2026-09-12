@@ -3,6 +3,7 @@ export interface InstalledCapabilityRecord {
   source: string;
   sourcePath: string;
   installedAt: string;
+  integrity?: string;
 }
 export interface ProjectManifest {
   name: string;
