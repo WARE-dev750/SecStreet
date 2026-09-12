@@ -17,6 +17,9 @@
     "typescript": "^5.6.3",
     "tsx": "^4.19.2",
     "vitest": "^2.1.8",
-    "@types/node": "^22.10.2"
+    "@types/node": "^22.10.2",
+    "@secstreet/capability": "workspace:*",
+    "@secstreet/contracts": "workspace:*",
+    "@secstreet/runtime": "workspace:*"
   }
 }

@@ -8,6 +8,15 @@ importers:
 
   .:
     devDependencies:
+      '@secstreet/capability':
+        specifier: workspace:*
+        version: link:packages/capability
+      '@secstreet/contracts':
+        specifier: workspace:*
+        version: link:packages/contracts
+      '@secstreet/runtime':
+        specifier: workspace:*
+        version: link:packages/runtime
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.2
