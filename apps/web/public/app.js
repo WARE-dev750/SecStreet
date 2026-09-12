@@ -20,6 +20,9 @@ const state = {
 
 const $ = (id) => document.getElementById(id);
 
+window.addEventListener("error", (e) => console.error("[secstreet]", e.message, e.filename + ":" + e.lineno));
+window.addEventListener("unhandledrejection", (e) => console.error("[secstreet] unhandled:", e.reason));
+
 async function api(path, opts) {
   const r = await fetch(path, opts);
   const text = await r.text();
@@ -168,8 +171,43 @@ function renderCapList() {
   return html;
 }
 
+function collectWorkflows() {
+  const out = [];
+  (function walk(nodes, dirPrefix) {
+    if (!nodes) return;
+    for (const n of nodes) {
+      if (n.type === "dir") {
+        if (n.name === "workflows") {
+          (function collect(children) {
+            for (const c of children || []) {
+              if (c.type === "file" && c.name.endsWith(".json")) out.push(c.path);
+            }
+          })(n.children);
+        }
+        walk(n.children, n.name);
+      }
+    }
+  })(state.files, "");
+  return out;
+}
+
 function renderWorkflowList() {
-  return '<div style="padding:12px;color:var(--text-3);font-size:12px">Workflow builder arrives in the canvas paste.</div>';
+  const flows = collectWorkflows();
+  if (!flows.length) {
+    return '<div style="padding:12px;color:var(--cream-3);font-size:12px">' +
+      'No workflows in this project.<br><span style="color:var(--cream-4)">Add JSON files under <code style="font-family:var(--mono);color:var(--cream-3)">workflows/</code>.</span></div>';
+  }
+  let html = '<div class="cap-list">';
+  for (const wf of flows) {
+    const name = wf.split("/").pop();
+    const active = state.activeTab === wf ? " active" : "";
+    html += '<div class="cap-row' + active + '" data-wf="' + wf + '">';
+    html += '<span class="name">' + name + '</span>';
+    html += '<span class="meta">canvas</span>';
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
 }
 
 function renderRegistryPanel() {
@@ -207,7 +245,8 @@ async function openFile(path) {
     state.tabs.push({ path, content: data.content, lang: data.language, dirty: false });
     state.activeTab = path;
     renderTabs();
-    attachEditor(path);
+    if (isWorkflow(path)) mountCanvas(path);
+    else attachEditor(path);
     renderRight();
     renderSidebar();
   } catch (err) {
@@ -224,8 +263,8 @@ function closeTab(path, e) {
   state.tabs.splice(idx, 1);
   if (state.activeTab === path) state.activeTab = state.tabs.length ? state.tabs[Math.max(0, idx - 1)].path : null;
   renderTabs();
-  if (state.activeTab) attachEditor(state.activeTab);
-  else { if (state.editor) state.editor.setModel(null); showEmpty(); }
+  if (state.activeTab) activateTab(state.activeTab);
+  else showEmpty();
   renderSidebar();
 }
 
@@ -244,9 +283,51 @@ function renderTabs() {
     tab.addEventListener("click", (e) => {
       if (e.target.classList.contains("close")) { closeTab(tab.dataset.path, e); return; }
       state.activeTab = tab.dataset.path;
-      renderTabs(); attachEditor(state.activeTab); renderRight(); renderSidebar();
+      renderTabs(); activateTab(state.activeTab); renderRight(); renderSidebar();
     });
   }
+}
+
+
+function isWorkflow(path) {
+  return path.startsWith("workflows/") && path.endsWith(".json");
+}
+
+function mountCanvas(path) {
+  $("emptyState").style.display = "none";
+  $("editorHost").style.display = "none";
+  const ch = $("canvasHost");
+  ch.style.display = "block";
+  if (window.Canvas) {
+    window.Canvas.mount(ch, path, (dirty) => {
+      const t = state.tabs.find((x) => x.path === path);
+      if (t) { t.dirty = dirty; renderTabs(); }
+    }).catch((err) => {
+      ch.innerHTML = '<div class="canvas-error">Canvas failed: ' + err.message + '</div>';
+    });
+  } else {
+    ch.innerHTML = '<div class="canvas-error">canvas.js not loaded</div>';
+  }
+}
+
+function activateTab(path) {
+  const t = state.tabs.find((x) => x.path === path);
+  if (!t) { showEmpty(); return; }
+  if (isWorkflow(path)) mountCanvas(path);
+  else attachEditor(path);
+}
+
+function activateTab(path) {
+  const t = state.tabs.find((x) => x.path === path);
+  if (!t) { showEmpty(); return; }
+  if (isWorkflow(path)) mountCanvas(path);
+  else attachEditor(path);
+}
+
+function unmountCanvas() {
+  if (window.Canvas) window.Canvas.unmount();
+  const ch = $("canvasHost");
+  if (ch) { ch.innerHTML = ""; ch.style.display = "none"; }
 }
 
 function renderBreadcrumb() {
@@ -268,6 +349,9 @@ function renderBreadcrumb() {
 function attachEditor(path) {
   const tab = state.tabs.find((t) => t.path === path);
   if (!tab) return;
+  unmountCanvas();
+  $("canvasHost").style.display = "none";
+  $("editorHost").style.display = "block";
   $("emptyState").style.display = "none";
 
   if (!state.editor) {
@@ -304,7 +388,7 @@ function attachEditor(path) {
   }
   state.editor.setModel(model);
   state.editor.layout();
-  setTimeout(() => state.editor.layout(), 30);
+  setTimeout(() => { if (state.editor) state.editor.layout(); }, 30);
 }
 
 async function saveFile(path, content) {
@@ -321,6 +405,10 @@ async function saveFile(path, content) {
 
 function showEmpty() {
   $("emptyState").style.display = "grid";
+  $("editorHost").style.display = "none";
+  const ch = $("canvasHost");
+  if (ch) { ch.style.display = "none"; ch.innerHTML = ""; }
+  if (window.Canvas) window.Canvas.unmount();
   if (state.editor) state.editor.setModel(null);
 }
 
@@ -494,7 +582,7 @@ function wireUI() {
 
   document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "p") { e.preventDefault(); openPalette(); }
-    if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); if (state.activeTab) { if (state.editor && state.activeTab) saveFile(state.activeTab, state.editor.getValue()); } }
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); if (state.activeTab && isWorkflow(state.activeTab) && window.Canvas) { window.Canvas.save(); } else if (state.activeTab && state.editor) saveFile(state.activeTab, state.editor.getValue()); }
   });
 
   // bottom panel
@@ -538,7 +626,10 @@ function wireSidebar() {
       }
     });
   });
-  $("sidebarBody").querySelectorAll(".cap-row").forEach((row) => {
+  $("sidebarBody").querySelectorAll(".cap-row[data-wf]").forEach((row) => {
+    row.addEventListener("click", () => openFile(row.dataset.wf));
+  });
+  $("sidebarBody").querySelectorAll(".cap-row[data-cap]").forEach((row) => {
     row.addEventListener("click", () => {
       state.selectedCap = row.dataset.cap;
       state.rightTab = "inspector";

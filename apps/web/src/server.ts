@@ -149,6 +149,14 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         const js = await readFile(join(publicDir, "icons.js"), "utf8");
         return send(res, 200, js, "application/javascript");
       }
+      if (p === "/canvas.js") {
+        const js = await readFile(join(publicDir, "canvas.js"), "utf8");
+        return send(res, 200, js, "application/javascript");
+      }
+      if (p === "/canvas.js") {
+        const js = await readFile(join(publicDir, "canvas.js"), "utf8");
+        return send(res, 200, js, "application/javascript");
+      }
       if (p === "/api/project") {
         const caps = await project.loadInstalled();
         return send(res, 200, {
