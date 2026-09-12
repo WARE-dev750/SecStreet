@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { loadRegistry } from "@secstreet/capability";
 import { runCapability } from "@secstreet/runtime";
 
-const CAPS = resolve(__dirname, "../../capabilities/official");
+const here = dirname(fileURLToPath(import.meta.url));
+const CAPS = resolve(here, "../../capabilities/official");
 
 describe("registry + runtime", () => {
   it("loads official capabilities", async () => {
@@ -19,8 +21,8 @@ describe("registry + runtime", () => {
     const input = {
       text: [
         "Jan 10 12:00:01 host sshd[123]: Accepted password for alice from 10.0.0.1 port 22 ssh2",
-        "Jan 10 12:00:02 host sshd[124]: Failed password for bob from 10.0.0.2 port 22 ssh2"
-      ].join("\n")
+        "Jan 10 12:00:02 host sshd[124]: Failed password for bob from 10.0.0.2 port 22 ssh2",
+      ].join("\n"),
     };
     const result = await runCapability({ capabilityDir: cap.dir, manifest: cap.manifest, input });
     expect(result.ok).toBe(true);

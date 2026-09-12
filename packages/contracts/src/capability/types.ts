@@ -1,6 +1,13 @@
 export type CapabilityRisk = "low" | "medium" | "high" | "critical";
 export type CapabilityTrust = "community" | "professional" | "verified" | "restricted";
-export type CapabilityLanguage = "typescript" | "python" | "rust" | "go" | "shell" | "binary";
+export type CapabilityLanguage =
+  | "javascript"
+  | "typescript"
+  | "python"
+  | "rust"
+  | "go"
+  | "shell"
+  | "binary";
 
 export interface CapabilityProvenance {
   sourceRepo: string;

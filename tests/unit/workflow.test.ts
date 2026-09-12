@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { loadRegistry } from "@secstreet/capability";
 import { runWorkflow, checkCompatibility } from "@secstreet/workflow";
 
-const CAPS = resolve(__dirname, "../../capabilities/official");
-const WORKFLOW = resolve(__dirname, "../../workflows/auth-failures.json");
+const here = dirname(fileURLToPath(import.meta.url));
+const CAPS = resolve(here, "../../capabilities/official");
+const WORKFLOW = resolve(here, "../../workflows/auth-failures.json");
 
 describe("workflow + compatibility", () => {
   it("runs the auth-failures workflow end-to-end", async () => {
@@ -15,8 +17,8 @@ describe("workflow + compatibility", () => {
     expect(result.output).toEqual({
       summary: [
         { ip: "10.0.0.2", count: 2 },
-        { ip: "10.0.0.3", count: 1 }
-      ]
+        { ip: "10.0.0.3", count: 1 },
+      ],
     });
   });
 
@@ -26,6 +28,7 @@ describe("workflow + compatibility", () => {
     const consumer = caps.find((c) => c.manifest.name === "filter-failed-logins")!;
     const result = await checkCompatibility(producer, consumer);
     expect(result.ok).toBe(true);
+    expect(result.kind).toBe("field-presence");
     expect(result.missing).toEqual([]);
   });
 

@@ -2,13 +2,16 @@
   "name": "filter-failed-logins",
   "version": "0.1.0",
   "description": "Keep only authentication events where result is failure.",
-  "language": "typescript",
+  "language": "javascript",
   "entrypoint": "index.js",
   "inputSchema": "input.schema.json",
   "outputSchema": "output.schema.json",
   "dependencies": [],
-  "os": ["linux", "darwin"],
-  "permissions": ["filesystem:read"],
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "permissions": [],
   "risk": "low",
   "trust": "community",
   "provenance": {

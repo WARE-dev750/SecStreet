@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { fileURLToPath } from "node:url";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { Project, listLibrary } from "@secstreet/project";
 
-const LIB = resolve(__dirname, "../../capabilities/official");
+const here = dirname(fileURLToPath(import.meta.url));
+const LIB = resolve(here, "../../capabilities/official");
 
 describe("Project + library", () => {
   let tmp: string;

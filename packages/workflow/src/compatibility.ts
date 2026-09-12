@@ -8,8 +8,16 @@ interface JsonSchema {
   properties?: Record<string, JsonSchema>;
 }
 
+/**
+ * V0 compatibility: field-presence only.
+ *
+ * Checks that every field the consumer requires is present in the producer's
+ * output schema. Does NOT verify types, nested structure, enums, or semantics.
+ * Full JSON-Schema compatibility is a later milestone.
+ */
 export interface CompatibilityResult {
   ok: boolean;
+  kind: "field-presence";
   missing: string[];
   reason?: string;
 }
@@ -27,14 +35,15 @@ export async function checkCompatibility(
 
   const required = consumerIn.required ?? [];
   const produced = Object.keys(producerOut.properties ?? {});
-
   const missing = required.filter((key) => !produced.includes(key));
+
   if (missing.length > 0) {
     return {
       ok: false,
+      kind: "field-presence",
       missing,
-      reason: `producer ${producer.manifest.name} does not expose required field(s): ${missing.join(", ")}`
+      reason: `producer ${producer.manifest.name} does not expose required field(s): ${missing.join(", ")}`,
     };
   }
-  return { ok: true, missing: [] };
+  return { ok: true, kind: "field-presence", missing: [] };
 }
