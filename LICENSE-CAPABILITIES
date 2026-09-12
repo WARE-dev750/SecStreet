@@ -1,0 +1,13 @@
+SecStreet Capability Licensing
+
+Capabilities distributed under capabilities/official/ are provided by
+SecStreet under the same All Rights Reserved terms as the platform.
+
+Third-party capabilities integrated into SecStreet must retain their
+original license and provenance. See capability.json provenance fields.
+Wrapping or adapting third-party open-source code does not change that
+code's license; it is included under the terms of its original license.
+
+Community-contributed capabilities require a signed Contributor License
+Agreement (CLA) before acceptance. The CLA grants SecStreet the right to
+distribute the contribution under the SecStreet platform license.
