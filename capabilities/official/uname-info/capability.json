@@ -1,0 +1,23 @@
+{
+  "name": "uname-info",
+  "version": "0.1.0",
+  "description": "Return system information by wrapping the uname command.",
+  "language": "javascript",
+  "entrypoint": "index.js",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux", "darwin"],
+  "permissions": ["subprocess"],
+  "risk": "low",
+  "trust": "professional",
+  "provenance": {
+    "sourceRepo": "https://github.com/SecStreet/SecStreet",
+    "sourceAuthor": "SecStreet",
+    "license": "MIT",
+    "version": "0.1.0",
+    "modifications": ["wraps system uname binary; parsing implemented in SecStreet"]
+  },
+  "maintainer": "SecStreet",
+  "execution": { "timeoutMs": 5000 }
+}

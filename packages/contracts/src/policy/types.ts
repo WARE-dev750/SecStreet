@@ -28,7 +28,7 @@ export interface Policy {
 
 export const DEFAULT_POLICY: Policy = {
   community: { maxPermissions: [] },
-  professional: { maxPermissions: ["filesystem:read", "env:read"] },
-  verified: { maxPermissions: ["filesystem:read", "filesystem:write", "env:read", "network"] },
+  professional: { maxPermissions: ["filesystem:read", "env:read", "subprocess"] },
+  verified: { maxPermissions: ["filesystem:read", "filesystem:write", "env:read", "network", "subprocess"] },
   restricted: { maxPermissions: [...ALL_PERMISSIONS] },
 };
