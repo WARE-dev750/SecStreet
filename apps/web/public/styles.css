@@ -560,7 +560,6 @@ input:focus,textarea:focus{box-shadow:var(--glow-gold);border-color:var(--gold-l
 }
 
 /* ===== workflow canvas ===== */
-.canvas-host-visible{background:var(--ink);display:flex;flex-direction:column}
 .canvas-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}
 .canvas-toolbar{
   display:flex;align-items:center;gap:var(--s-3);
