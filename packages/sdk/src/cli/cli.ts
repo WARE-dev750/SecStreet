@@ -3,13 +3,13 @@ import { resolve, join } from "node:path";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { runCapability, evaluatePolicy } from "@secstreet/runtime";
 import { runWorkflow, checkCompatibility } from "@secstreet/workflow";
-import { Project, listLibrary, searchLibrary, resolveLibraries, writeSignature, type AuditEntry } from "@secstreet/project";
+import { Project, listLibrary, searchLibrary, resolveLibraries, writeSignature, buildLibraryIndex, verifyLibraryIndex, readLibraryIndex, writeLibraryIndex, type AuditEntry } from "@secstreet/project";
 import { hashJson } from "@secstreet/capability";
 import { DEFAULT_POLICY, type CapabilityManifest, type CapabilityTrust } from "@secstreet/contracts";
 import { generateEd25519KeyPair, keyIdFromPublicKey, readPrivateKeyPem, readPublicKeyPem } from "@secstreet/security";
 
 function usage(): void {
-  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify|audit|keygen|trust|keys|sign>");
+  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify|audit|keygen|trust|keys|sign|lib>");
 }
 function getFlag(args: string[], flag: string): string | null {
   const i = args.indexOf(flag);
@@ -223,6 +223,51 @@ async function main(): Promise<void> {
     const sig = await writeSignature(absCap, manifest, privPem);
     console.log("signed " + manifest.name + "@" + manifest.version + " with key " + keyName + " (keyId=" + sig.keyId + ")");
     return;
+  }
+  if (cmd === "lib") {
+    const sub = positionals(rest)[0];
+    if (sub === "index") {
+      const libDir = getFlag(rest, "--library");
+      const outPath = getFlag(rest, "--out");
+      const keyName = getFlag(rest, "--key-name");
+      const libName = getFlag(rest, "--name") ?? "library";
+      const libVersion = getFlag(rest, "--version") ?? "0.1.0";
+      const maintainer = getFlag(rest, "--maintainer") ?? "unknown";
+      if (!libDir || !outPath || !keyName) {
+        console.error("usage: lib index --library <dir> --out <file> --key-name <name> [--name <n>] [--version <v>] [--maintainer <m>]");
+        process.exit(2);
+      }
+      const p = await openProjectOrFail();
+      const privPem = await readPrivateKeyPem(join(p.keysDir, keyName + ".priv.pem"));
+      const idx = await buildLibraryIndex({
+        libraryName: libName, libraryVersion: libVersion, maintainer,
+        libraryDir: resolve(process.cwd(), libDir), privateKeyPem: privPem,
+      });
+      await writeLibraryIndex(resolve(process.cwd(), outPath), idx);
+      console.log("wrote index " + outPath + " with " + idx.capabilities.length + " capabilities");
+      return;
+    }
+    if (sub === "verify") {
+      const idxPath = positionals(rest)[1];
+      const libDir = getFlag(rest, "--library");
+      const keyName = getFlag(rest, "--key-name");
+      if (!idxPath || !libDir || !keyName) {
+        console.error("usage: lib verify <index.json> --library <dir> --key-name <name>");
+        process.exit(2);
+      }
+      const p = await openProjectOrFail();
+      const pubPem = await readPublicKeyPem(join(p.keysDir, keyName + ".pub.pem"));
+      const idx = await readLibraryIndex(resolve(process.cwd(), idxPath));
+      const r = await verifyLibraryIndex(idx, resolve(process.cwd(), libDir), pubPem);
+      if (r.ok) {
+        console.log("OK  " + idx.libraryName + "@" + idx.libraryVersion + "  " + r.total + " capabilities verified");
+        return;
+      }
+      for (const f of r.failures) console.error("FAIL  " + f.name + ": " + f.reason);
+      process.exit(1);
+    }
+    console.error("usage: lib <index|verify>");
+    process.exit(2);
   }
   if (cmd === "run") {
     const name = positionals(rest)[0];
