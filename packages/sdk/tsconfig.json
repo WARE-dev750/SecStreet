@@ -28,6 +28,9 @@
     },
     {
       "path": "../ai"
+    },
+    {
+      "path": "../../services/registry"
     }
   ]
 }

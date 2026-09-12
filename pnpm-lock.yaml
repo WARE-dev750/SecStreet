@@ -106,6 +106,9 @@ importers:
       '@secstreet/security':
         specifier: workspace:*
         version: link:../security
+      '@secstreet/service-registry':
+        specifier: workspace:*
+        version: link:../../services/registry
       '@secstreet/workflow':
         specifier: workspace:*
         version: link:../workflow

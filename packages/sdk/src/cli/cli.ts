@@ -8,9 +8,10 @@ import { hashJson, loadRegistry } from "@secstreet/capability";
 import { DEFAULT_POLICY, type CapabilityManifest, type CapabilityTrust, type CapabilityLanguage, type CapabilityRisk } from "@secstreet/contracts";
 import { generateEd25519KeyPair, keyIdFromPublicKey, readPrivateKeyPem, readPublicKeyPem } from "@secstreet/security";
 import { MockProvider, OpenAICompatibleProvider, generateAdapter, scaffoldAdapter, type AIProvider } from "@secstreet/ai";
+import { RegistryClient } from "@secstreet/service-registry";
 
 function usage(): void {
-  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify|audit|keygen|trust|keys|sign|lib|new|publish|ai>");
+  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify|audit|keygen|trust|keys|sign|lib|new|publish|ai|remote>");
 }
 function getFlag(args: string[], flag: string): string | null {
   const i = args.indexOf(flag);
@@ -359,6 +360,51 @@ async function main(): Promise<void> {
       return;
     }
     console.error("usage: ai <adapter>");
+    process.exit(2);
+  }
+  if (cmd === "remote") {
+    const sub = positionals(rest)[0];
+    const url = getFlag(rest, "--url") ?? process.env.SECSTREET_REGISTRY_URL;
+    if (!url) {
+      console.error("no registry url (use --url or set SECSTREET_REGISTRY_URL)");
+      process.exit(2);
+    }
+    const client = new RegistryClient(url);
+
+    if (sub === "list") {
+      const caps = await client.list();
+      for (const c of caps) {
+        console.log(c.name + "\t" + c.version + "\t" + c.trust + "\t" + c.risk + "\t" + c.description);
+      }
+      return;
+    }
+    if (sub === "inspect") {
+      const name = positionals(rest)[1];
+      if (!name) { console.error("usage: remote inspect <name> --url <url>"); process.exit(2); }
+      const m = await client.manifest(name);
+      console.log(JSON.stringify(m, null, 2));
+      return;
+    }
+    if (sub === "index") {
+      const idx = await client.index();
+      console.log(JSON.stringify(idx, null, 2));
+      return;
+    }
+    if (sub === "add") {
+      const name = positionals(rest)[1];
+      if (!name) { console.error("usage: remote add <name> --url <url>"); process.exit(2); }
+      const p = await openProjectOrFail();
+      const staging = join(p.root, ".secstreet", "staging-remote");
+      await mkdir(staging, { recursive: true });
+      await client.downloadTo(name, staging);
+      const staged = await loadRegistry(staging);
+      const cap = staged.find((c) => c.manifest.name === name);
+      if (!cap) throw new Error("downloaded capability not found: " + name);
+      await p.install(cap, "remote:" + url);
+      console.log("installed " + name + "@" + cap.manifest.version + " from " + url);
+      return;
+    }
+    console.error("usage: remote <list|inspect|index|add> --url <url>");
     process.exit(2);
   }
   if (cmd === "run") {
