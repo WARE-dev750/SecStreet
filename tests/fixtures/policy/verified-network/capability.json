@@ -1,0 +1,22 @@
+{
+  "name": "verified-network",
+  "version": "0.1.0",
+  "description": "Fixture: declares network at verified trust tier.",
+  "language": "javascript",
+  "entrypoint": "index.js",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux"],
+  "permissions": ["network"],
+  "risk": "low",
+  "trust": "verified",
+  "provenance": {
+    "sourceRepo": "https://example.com",
+    "sourceAuthor": "test",
+    "license": "MIT",
+    "version": "0.1.0",
+    "modifications": []
+  },
+  "maintainer": "test"
+}

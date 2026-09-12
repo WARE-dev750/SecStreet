@@ -1,13 +1,9 @@
+import type { Permission } from "../policy/types.js";
+
 export type CapabilityRisk = "low" | "medium" | "high" | "critical";
 export type CapabilityTrust = "community" | "professional" | "verified" | "restricted";
 export type CapabilityLanguage =
-  | "javascript"
-  | "typescript"
-  | "python"
-  | "rust"
-  | "go"
-  | "shell"
-  | "binary";
+  | "javascript" | "typescript" | "python" | "rust" | "go" | "shell" | "binary";
 
 export interface CapabilityProvenance {
   sourceRepo: string;
@@ -27,7 +23,7 @@ export interface CapabilityManifest {
   outputSchema: string;
   dependencies: string[];
   os: string[];
-  permissions: string[];
+  permissions: Permission[];
   risk: CapabilityRisk;
   trust: CapabilityTrust;
   provenance: CapabilityProvenance;
@@ -40,4 +36,5 @@ export interface CapabilityRunResult {
   stderr: string;
   exitCode: number;
   durationMs: number;
+  deniedByPolicy?: { reason: string; disallowed: Permission[] };
 }

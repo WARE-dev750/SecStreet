@@ -1,8 +1,6 @@
+import { ALL_PERMISSIONS } from "../policy/types.js";
 import type {
-  CapabilityManifest,
-  CapabilityLanguage,
-  CapabilityRisk,
-  CapabilityTrust,
+  CapabilityManifest, CapabilityLanguage, CapabilityRisk, CapabilityTrust,
 } from "./types.js";
 
 const LANGUAGES: CapabilityLanguage[] = [
@@ -10,6 +8,7 @@ const LANGUAGES: CapabilityLanguage[] = [
 ];
 const RISKS: CapabilityRisk[] = ["low", "medium", "high", "critical"];
 const TRUSTS: CapabilityTrust[] = ["community", "professional", "verified", "restricted"];
+const PERM_SET = new Set<string>(ALL_PERMISSIONS);
 
 export function validateManifest(
   value: unknown
@@ -32,23 +31,23 @@ export function validateManifest(
   if (typeof m.language !== "string" || !LANGUAGES.includes(m.language as CapabilityLanguage)) {
     errors.push(`language must be one of: ${LANGUAGES.join(", ")}`);
   }
-  if (typeof m.entrypoint !== "string" || !m.entrypoint) {
-    errors.push("entrypoint must be a non-empty string");
-  }
-  if (typeof m.inputSchema !== "string" || !m.inputSchema) {
-    errors.push("inputSchema must be a non-empty string");
-  }
-  if (typeof m.outputSchema !== "string" || !m.outputSchema) {
-    errors.push("outputSchema must be a non-empty string");
-  }
+  if (typeof m.entrypoint !== "string" || !m.entrypoint) errors.push("entrypoint must be non-empty");
+  if (typeof m.inputSchema !== "string" || !m.inputSchema) errors.push("inputSchema must be non-empty");
+  if (typeof m.outputSchema !== "string" || !m.outputSchema) errors.push("outputSchema must be non-empty");
   if (!Array.isArray(m.dependencies) || !m.dependencies.every((x) => typeof x === "string")) {
     errors.push("dependencies must be a string[]");
   }
   if (!Array.isArray(m.os) || !m.os.every((x) => typeof x === "string")) {
     errors.push("os must be a string[]");
   }
-  if (!Array.isArray(m.permissions) || !m.permissions.every((x) => typeof x === "string")) {
-    errors.push("permissions must be a string[]");
+  if (!Array.isArray(m.permissions)) {
+    errors.push("permissions must be an array");
+  } else {
+    for (const perm of m.permissions) {
+      if (typeof perm !== "string" || !PERM_SET.has(perm)) {
+        errors.push(`permissions has unknown value: ${String(perm)}`);
+      }
+    }
   }
   if (typeof m.risk !== "string" || !RISKS.includes(m.risk as CapabilityRisk)) {
     errors.push(`risk must be one of: ${RISKS.join(", ")}`);
@@ -56,9 +55,7 @@ export function validateManifest(
   if (typeof m.trust !== "string" || !TRUSTS.includes(m.trust as CapabilityTrust)) {
     errors.push(`trust must be one of: ${TRUSTS.join(", ")}`);
   }
-  if (typeof m.maintainer !== "string" || !m.maintainer) {
-    errors.push("maintainer must be a non-empty string");
-  }
+  if (typeof m.maintainer !== "string" || !m.maintainer) errors.push("maintainer must be non-empty");
   if (typeof m.provenance !== "object" || m.provenance === null) {
     errors.push("provenance must be an object");
   } else {
@@ -69,7 +66,6 @@ export function validateManifest(
     if (typeof p.version !== "string") errors.push("provenance.version must be string");
     if (!Array.isArray(p.modifications)) errors.push("provenance.modifications must be array");
   }
-
   if (errors.length) return { ok: false, errors };
   return { ok: true, value: value as CapabilityManifest };
 }
