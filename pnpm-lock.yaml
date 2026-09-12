@@ -55,6 +55,9 @@ importers:
       '@secstreet/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@secstreet/security':
+        specifier: workspace:*
+        version: link:../security
 
   packages/runtime:
     dependencies:

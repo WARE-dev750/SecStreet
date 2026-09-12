@@ -7,7 +7,8 @@
   "types": "./dist/index.d.ts",
   "dependencies": {
     "@secstreet/capability": "workspace:*",
-    "@secstreet/contracts": "workspace:*"
+    "@secstreet/contracts": "workspace:*",
+    "@secstreet/security": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
 
-const SKIP = new Set(["node_modules", ".git", "dist"]);
+const SKIP = new Set(["node_modules", ".git", "dist", "signature.json"]);
 
 export async function hashDirectory(root: string): Promise<string> {
   const files: string[] = [];

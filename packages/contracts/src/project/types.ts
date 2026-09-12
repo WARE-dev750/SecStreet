@@ -4,6 +4,8 @@ export interface InstalledCapabilityRecord {
   sourcePath: string;
   installedAt: string;
   integrity?: string;
+  signedBy?: string;
+  trustVerified?: boolean;
 }
 export interface ProjectManifest {
   name: string;

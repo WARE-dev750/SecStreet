@@ -3,15 +3,16 @@ import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { validateProjectManifest, type ProjectManifest, type InstalledCapabilityRecord } from "@secstreet/contracts";
 import { loadRegistry, hashDirectory, type RegisteredCapability } from "@secstreet/capability";
+import { TrustStore } from "@secstreet/security";
 import { AuditLog, auditPathFor, type AuditEntry } from "./audit.js";
+import { verifySignature, readSignature } from "./signature.js";
 
 const MANIFEST = "secstreet.json";
 
-export interface VerifyResult {
-  name: string;
-  ok: boolean;
-  expected: string;
-  actual: string;
+export interface VerifyResult { name: string; ok: boolean; expected: string; actual: string; }
+
+export interface InstallOptions {
+  requireSignatureFor?: Array<"verified" | "restricted">;
 }
 
 export class Project {
@@ -39,31 +40,79 @@ export class Project {
     const manifest: ProjectManifest = { name, version: "0.0.1", installed: {} };
     await mkdir(join(root, "capabilities"), { recursive: true });
     await mkdir(join(root, "workflows"), { recursive: true });
+    await mkdir(join(root, ".secstreet", "keys"), { recursive: true });
     await writeFile(join(root, MANIFEST), JSON.stringify(manifest, null, 2) + "\n");
     await writeFile(join(root, ".gitignore"), "node_modules/\nresults/\n.secstreet/\n");
     return new Project(resolve(root), manifest);
   }
 
   get manifestData(): ProjectManifest { return this.manifest; }
-  get auditLog(): AuditLog { return new AuditLog(auditPathFor(this.root)); }
   get capabilitiesDir(): string { return join(this.root, "capabilities"); }
+  get auditLog(): AuditLog { return new AuditLog(auditPathFor(this.root)); }
+  get secstreetDir(): string { return join(this.root, ".secstreet"); }
+  get keysDir(): string { return join(this.root, ".secstreet", "keys"); }
+  get trustPath(): string { return join(this.root, ".secstreet", "trust.json"); }
 
   async save(): Promise<void> {
     await writeFile(join(this.root, MANIFEST), JSON.stringify(this.manifest, null, 2) + "\n");
   }
 
-  async install(capability: RegisteredCapability, sourceLabel: string): Promise<void> {
+  async loadTrustStore(): Promise<TrustStore> {
+    return TrustStore.load(this.trustPath);
+  }
+
+  async saveTrustStore(store: TrustStore): Promise<void> {
+    await store.save(this.trustPath);
+  }
+
+  async install(
+    capability: RegisteredCapability,
+    sourceLabel: string,
+    options: InstallOptions = {}
+  ): Promise<void> {
     const name = capability.manifest.name;
+    const trust = capability.manifest.trust;
+    const needsSignature = options.requireSignatureFor?.includes(trust as "verified" | "restricted") ?? false;
+
+    let signedBy: string | undefined;
+    let trustVerified: boolean | undefined;
+
+    if (needsSignature) {
+      const store = await this.loadTrustStore();
+      const sig = await readSignature(capability.dir);
+      if (!sig) throw new Error("capability " + name + " has trust=" + trust + " but no signature.json");
+      const pub = store.getKey(sig.keyId);
+      if (!pub) throw new Error("signature keyId " + sig.keyId + " is not in the trust store");
+      if (!store.isTrustedFor(trust as "verified" | "restricted", sig.keyId)) {
+        throw new Error("keyId " + sig.keyId + " is not trusted for tier " + trust);
+      }
+      const result = await verifySignature(capability.dir, capability.manifest, pub);
+      if (!result.ok) throw new Error("signature verification failed: " + result.reason);
+      signedBy = sig.keyId;
+      trustVerified = true;
+    } else {
+      const sig = await readSignature(capability.dir);
+      if (sig) signedBy = sig.keyId;
+    }
+
     const destDir = join(this.capabilitiesDir, name);
     await rm(destDir, { recursive: true, force: true });
     await cp(capability.dir, destDir, { recursive: true });
-    const integrity = await hashDirectory(destDir);
+
+    const sourceIntegrity = await hashDirectory(capability.dir);
+    const destIntegrity = await hashDirectory(destDir);
+    if (sourceIntegrity !== destIntegrity) {
+      throw new Error("integrity mismatch after copy: " + sourceIntegrity + " != " + destIntegrity);
+    }
+
     const record: InstalledCapabilityRecord = {
       version: capability.manifest.version,
       source: sourceLabel,
       sourcePath: capability.dir,
       installedAt: new Date().toISOString(),
-      integrity,
+      integrity: destIntegrity,
+      signedBy,
+      trustVerified,
     };
     this.manifest.installed[name] = record;
     await this.save();
