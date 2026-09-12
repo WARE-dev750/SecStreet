@@ -11,6 +11,9 @@ importers:
       '@secstreet/ai':
         specifier: workspace:*
         version: link:packages/ai
+      '@secstreet/app-web':
+        specifier: workspace:*
+        version: link:apps/web
       '@secstreet/capability':
         specifier: workspace:*
         version: link:packages/capability
@@ -44,6 +47,27 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.2)
+
+  apps/web:
+    dependencies:
+      '@secstreet/capability':
+        specifier: workspace:*
+        version: link:../../packages/capability
+      '@secstreet/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@secstreet/project':
+        specifier: workspace:*
+        version: link:../../packages/project
+      '@secstreet/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@secstreet/service-registry':
+        specifier: workspace:*
+        version: link:../../services/registry
+      '@secstreet/workflow':
+        specifier: workspace:*
+        version: link:../../packages/workflow
 
   packages/ai:
     dependencies:
