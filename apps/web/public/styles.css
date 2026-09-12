@@ -607,3 +607,25 @@ input:focus,textarea:focus{box-shadow:var(--glow-gold);border-color:var(--gold-l
   overflow:auto !important;
   min-height:0 !important;
 }
+
+/* ===== AI panel ===== */
+.ai-form{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.ai-form label{
+  font-size:var(--fs-micro);text-transform:uppercase;letter-spacing:.12em;
+  color:var(--cream-4);font-weight:600;margin-top:6px;
+}
+.ai-form select,.ai-form input{
+  width:100%;padding:7px 10px;
+  background:var(--ink);border:1px solid var(--hair);color:var(--cream);
+  border-radius:5px;font-family:var(--mono);font-size:var(--fs-tiny);
+  transition:box-shadow .14s ease,border-color .14s ease;
+}
+.ai-form select:focus,.ai-form input:focus{box-shadow:var(--glow-gold);border-color:var(--gold-lo)}
+.ai-form button{
+  margin-top:12px;padding:8px 14px;border-radius:5px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold));
+  color:var(--ink);font-weight:600;font-size:var(--fs-tiny);letter-spacing:.02em;
+  box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 1px 2px rgba(0,0,0,.35);
+  cursor:pointer;
+}
+.ai-form button:hover{background:linear-gradient(180deg,#eace8f,var(--gold-hi))}

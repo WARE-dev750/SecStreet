@@ -11,7 +11,8 @@
     "@secstreet/project": "workspace:*",
     "@secstreet/runtime": "workspace:*",
     "@secstreet/workflow": "workspace:*",
-    "@secstreet/service-registry": "workspace:*"
+    "@secstreet/service-registry": "workspace:*",
+    "@secstreet/ai": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

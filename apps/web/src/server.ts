@@ -1,11 +1,13 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
-import { readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { readFile, readdir, stat, writeFile, rm, mkdir } from "node:fs/promises";
 import { join, resolve, normalize } from "node:path";
 import { Project, type AuditEntry } from "@secstreet/project";
 import { runCapability } from "@secstreet/runtime";
 import { runWorkflow } from "@secstreet/workflow";
 import { RegistryClient } from "@secstreet/service-registry";
-import { hashJson } from "@secstreet/capability";
+import { checkCompatibility } from "@secstreet/workflow";
+import { generateAdapter, scaffoldAdapter, MockProvider } from "@secstreet/ai";
+import { hashJson, loadRegistry } from "@secstreet/capability";
 
 export interface WebServerOptions {
   projectRoot: string;
@@ -251,6 +253,54 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         if (typeof body.content !== "string") return send(res, 400, { error: "content required" });
         await writeFile(abs, body.content, "utf8");
         return send(res, 200, { ok: true, path: rel, bytes: body.content.length });
+      }
+      if (p === "/api/ai/adapter" && req.method === "POST") {
+        const body = await readJson(req) as { producer?: string; consumer?: string; adapterName?: string };
+        if (!body.producer || !body.consumer) {
+          return send(res, 400, { ok: false, error: "producer and consumer required" });
+        }
+        const caps = await project.loadInstalled();
+        const producer = caps.find((c) => c.manifest.name === body.producer);
+        const consumer = caps.find((c) => c.manifest.name === body.consumer);
+        if (!producer) return send(res, 404, { ok: false, error: "not installed: " + body.producer });
+        if (!consumer) return send(res, 404, { ok: false, error: "not installed: " + body.consumer });
+
+        const compat = await checkCompatibility(producer, consumer);
+        if (compat.ok) {
+          return send(res, 200, {
+            ok: true,
+            alreadyCompatible: true,
+            reason: producer.manifest.name + " output already satisfies " + consumer.manifest.name + " input",
+          });
+        }
+
+        const provider = new MockProvider();
+        const generated = await generateAdapter({
+          producer, consumer, adapterName: body.adapterName, provider,
+        });
+
+        const staging = join(project.root, ".secstreet", "staging-ai");
+        await rm(staging, { recursive: true, force: true });
+        await mkdir(staging, { recursive: true });
+        await scaffoldAdapter({
+          root: staging,
+          generated,
+          producerName: producer.manifest.name,
+          consumerName: consumer.manifest.name,
+        });
+        const staged = await loadRegistry(staging);
+        const adapterCap = staged.find((c) => c.manifest.name === generated.adapterName);
+        if (!adapterCap) throw new Error("generated adapter not found after scaffold");
+        await project.install(adapterCap, "ai:" + generated.provider + "/" + generated.model);
+
+        return send(res, 200, {
+          ok: true,
+          alreadyCompatible: false,
+          adapterName: generated.adapterName,
+          rationale: generated.rationale,
+          provider: generated.provider,
+          model: generated.model,
+        });
       }
       return send(res, 404, { error: "not found: " + p });
     } catch (err) {

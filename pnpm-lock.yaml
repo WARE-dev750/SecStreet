@@ -50,6 +50,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@secstreet/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@secstreet/capability':
         specifier: workspace:*
         version: link:../../packages/capability

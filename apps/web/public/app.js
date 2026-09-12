@@ -449,10 +449,7 @@ async function renderBottom() {
 function renderRight() {
   const body = $("rightBody");
   if (state.rightTab === "ai") {
-    body.innerHTML = '<div style="color:var(--text-3);font-size:12px;line-height:1.7">' +
-      '<div style="color:var(--text);font-size:13px;margin-bottom:10px">SecStreet AI</div>' +
-      'Assistant arrives after the canvas paste. It will be capability-aware: it will see your installed library, selected file, and running workflow, not just chat.' +
-      '</div>';
+    renderAIPanel(body);
     return;
   }
   // inspector
@@ -522,6 +519,73 @@ function renderFileInspector(body) {
   $("fileSave").addEventListener("click", () => {
     if (state.editor && state.activeTab === tab.path) saveFile(tab.path, state.editor.getValue());
   });
+}
+
+function renderAIPanel(body) {
+  const caps = state.caps;
+  if (!caps.length) {
+    body.innerHTML = '<div style="color:var(--cream-3);font-size:12px;text-align:center;padding:20px 0">No capabilities installed.</div>';
+    return;
+  }
+  const options = caps.map((c) => '<option value="' + c.name + '">' + c.name + ' @' + c.version + '</option>').join("");
+  body.innerHTML =
+    '<h3>AI adapter</h3>' +
+    '<div class="desc">Generate a bridge capability that transforms a producer output into a consumer input.</div>' +
+    '<div class="ai-form">' +
+      '<label>Producer</label><select id="aiProducer">' + options + '</select>' +
+      '<label>Consumer</label><select id="aiConsumer">' + options + '</select>' +
+      '<label>Adapter name (optional)</label><input id="aiName" placeholder="auto" spellcheck="false" />' +
+      '<button id="aiGenerate">Generate adapter</button>' +
+    '</div>' +
+    '<div id="aiResult"></div>';
+  $("aiGenerate").addEventListener("click", async () => {
+    const producer = $("aiProducer").value;
+    const consumer = $("aiConsumer").value;
+    const adapterName = $("aiName").value.trim() || undefined;
+    $("aiResult").innerHTML = '<div class="section">Generating…</div>';
+    try {
+      const r = await api("/api/ai/adapter", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ producer, consumer, adapterName }),
+      });
+      if (r.alreadyCompatible) {
+        $("aiResult").innerHTML =
+          '<div class="section">No adapter needed</div>' +
+          '<pre>' + escapeHtml(r.reason) + '</pre>';
+        return;
+      }
+      $("aiResult").innerHTML =
+        '<div class="section">Adapter generated</div>' +
+        '<div class="kv">' +
+          '<span class="k">name</span><span class="v"><code>' + r.adapterName + '</code></span>' +
+          '<span class="k">provider</span><span class="v">' + r.provider + ' / ' + r.model + '</span>' +
+        '</div>' +
+        '<div class="section">Rationale</div>' +
+        '<pre>' + escapeHtml(r.rationale) + '</pre>';
+      await refreshCaps();
+      pushOutput("ai generated " + r.adapterName + " (" + producer + " -> " + consumer + ")");
+      renderBottom();
+    } catch (err) {
+      $("aiResult").innerHTML = '<div class="section">Error</div><pre class="err">' + escapeHtml(err.message) + '</pre>';
+    }
+  });
+}
+
+async function refreshCaps() {
+  const p = await api("/api/project");
+  state.project = p;
+  state.caps = p.installed;
+  $("statusCaps").textContent = state.caps.length + " caps";
+  const options = state.caps.map((c) => '<option value="' + c.name + '">' + c.name + ' @' + c.version + '</option>').join("");
+  const ps = $("aiProducer"); const cs = $("aiConsumer");
+  if (ps && cs) {
+    const pv = ps.value; const cv = cs.value;
+    ps.innerHTML = options; cs.innerHTML = options;
+    if (pv) ps.value = pv;
+    if (cv) cs.value = cv;
+  }
+  renderSidebar();
 }
 
 function escapeHtml(s) {

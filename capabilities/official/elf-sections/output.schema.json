@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "required": ["path", "sections"],
+  "properties": {
+    "path": { "type": "string" },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "address", "offset", "size"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "address": { "type": "string" },
+          "offset": { "type": "string" },
+          "size": { "type": "string" },
+          "flags": { "type": "string" }
+        }
+      }
+    }
+  }
+}
