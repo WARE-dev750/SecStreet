@@ -1,6 +1,6 @@
 import { ALL_PERMISSIONS } from "../policy/types.js";
 import type {
-  CapabilityManifest, CapabilityLanguage, CapabilityRisk, CapabilityTrust,
+  CapabilityManifest, CapabilityLanguage, CapabilityRisk, CapabilityTrust, CapabilityKind,
 } from "./types.js";
 
 const LANGUAGES: CapabilityLanguage[] = [
@@ -8,6 +8,7 @@ const LANGUAGES: CapabilityLanguage[] = [
 ];
 const RISKS: CapabilityRisk[] = ["low", "medium", "high", "critical"];
 const TRUSTS: CapabilityTrust[] = ["community", "professional", "verified", "restricted"];
+const KINDS: CapabilityKind[] = ["capability", "adapter"];
 const PERM_SET = new Set<string>(ALL_PERMISSIONS);
 
 export function validateManifest(
@@ -27,6 +28,11 @@ export function validateManifest(
   }
   if (typeof m.description !== "string" || !m.description) {
     errors.push("description must be a non-empty string");
+  }
+  if (m.kind !== undefined) {
+    if (typeof m.kind !== "string" || !KINDS.includes(m.kind as CapabilityKind)) {
+      errors.push("kind must be one of: " + KINDS.join(", "));
+    }
   }
   if (typeof m.language !== "string" || !LANGUAGES.includes(m.language as CapabilityLanguage)) {
     errors.push("language must be one of: " + LANGUAGES.join(", "));

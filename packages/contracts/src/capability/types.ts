@@ -4,6 +4,7 @@ export type CapabilityRisk = "low" | "medium" | "high" | "critical";
 export type CapabilityTrust = "community" | "professional" | "verified" | "restricted";
 export type CapabilityLanguage =
   | "javascript" | "typescript" | "python" | "rust" | "go" | "shell" | "binary";
+export type CapabilityKind = "capability" | "adapter";
 
 export interface CapabilityProvenance {
   sourceRepo: string;
@@ -23,6 +24,7 @@ export interface CapabilityManifest {
   name: string;
   version: string;
   description: string;
+  kind?: CapabilityKind;
   language: CapabilityLanguage;
   entrypoint: string;
   inputSchema: string;

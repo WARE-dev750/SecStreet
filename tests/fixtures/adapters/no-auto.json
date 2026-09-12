@@ -1,0 +1,16 @@
+{
+  "name": "no-auto.json",
+  "steps": [
+    {
+      "id": "emit",
+      "capability": "emit-wrapped",
+      "input": {}
+    },
+    {
+      "id": "consume",
+      "capability": "consume-events",
+      "from": "emit"
+    }
+  ],
+  "autoAdapters": false
+}

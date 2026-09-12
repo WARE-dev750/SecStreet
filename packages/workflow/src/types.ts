@@ -10,6 +10,7 @@ export interface Workflow {
   name: string;
   description?: string;
   steps: WorkflowStep[];
+  autoAdapters?: boolean;
 }
 
 export interface StepResult {
@@ -19,6 +20,7 @@ export interface StepResult {
   output?: unknown;
   error?: string;
   durationMs: number;
+  insertedAdapter?: boolean;
 }
 
 export interface WorkflowResult {

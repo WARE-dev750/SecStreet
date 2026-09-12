@@ -1,0 +1,15 @@
+{
+  "name": "auto-insert.json",
+  "steps": [
+    {
+      "id": "emit",
+      "capability": "emit-wrapped",
+      "input": {}
+    },
+    {
+      "id": "consume",
+      "capability": "consume-events",
+      "from": "emit"
+    }
+  ]
+}
