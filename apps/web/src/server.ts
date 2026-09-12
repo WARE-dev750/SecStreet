@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
-import { readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { join, resolve, normalize, relative, isAbsolute } from "node:path";
 import { Project, type AuditEntry } from "@secstreet/project";
 import { runCapability } from "@secstreet/runtime";
 import { runWorkflow } from "@secstreet/workflow";
@@ -49,6 +49,63 @@ function auditFor(
   };
 }
 
+
+const SKIP_DIRS = new Set(["node_modules", ".git", "dist", ".secstreet"]);
+
+function safeResolve(root: string, rel: string): string {
+  const cleaned = normalize(rel).replace(/^(\.\.(\/|\\|$))+/, "");
+  const full = resolve(root, cleaned);
+  const rootResolved = resolve(root);
+  if (full !== rootResolved && !full.startsWith(rootResolved + "/")) {
+    throw new Error("path escapes project root");
+  }
+  return full;
+}
+
+function langForFile(path: string): string {
+  if (path.endsWith(".json")) return "json";
+  if (path.endsWith(".ts") || path.endsWith(".tsx")) return "typescript";
+  if (path.endsWith(".js") || path.endsWith(".mjs") || path.endsWith(".cjs")) return "javascript";
+  if (path.endsWith(".py")) return "python";
+  if (path.endsWith(".md")) return "markdown";
+  if (path.endsWith(".yml") || path.endsWith(".yaml")) return "yaml";
+  if (path.endsWith(".sh")) return "shell";
+  if (path.endsWith(".html")) return "html";
+  if (path.endsWith(".css")) return "css";
+  return "plaintext";
+}
+
+interface FileNode {
+  path: string;
+  name: string;
+  type: "file" | "dir";
+  children?: FileNode[];
+}
+
+async function walkTree(root: string, rel: string): Promise<FileNode[]> {
+  const abs = rel ? join(root, rel) : root;
+  const entries = await readdir(abs);
+  const out: FileNode[] = [];
+  for (const name of entries) {
+    if (name.startsWith(".") && name !== ".gitignore") continue;
+    if (SKIP_DIRS.has(name)) continue;
+    const childRel = rel ? rel + "/" + name : name;
+    const childAbs = join(root, childRel);
+    const st = await stat(childAbs);
+    if (st.isDirectory()) {
+      out.push({ path: childRel, name, type: "dir", children: await walkTree(root, childRel) });
+    } else if (st.isFile()) {
+      if (st.size > 512 * 1024) continue; // skip huge files from the tree
+      out.push({ path: childRel, name, type: "file" });
+    }
+  }
+  out.sort((a, b) => {
+    if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+  return out;
+}
+
 function send(res: ServerResponse, status: number, body: unknown, contentType = "application/json"): void {
   const payload = typeof body === "string" ? body : JSON.stringify(body);
   res.writeHead(status, { "content-type": contentType });
@@ -79,6 +136,18 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
       if (p === "/" || p === "/index.html") {
         const html = await readFile(join(publicDir, "index.html"), "utf8");
         return send(res, 200, html, "text/html");
+      }
+      if (p === "/styles.css") {
+        const css = await readFile(join(publicDir, "styles.css"), "utf8");
+        return send(res, 200, css, "text/css");
+      }
+      if (p === "/app.js") {
+        const js = await readFile(join(publicDir, "app.js"), "utf8");
+        return send(res, 200, js, "application/javascript");
+      }
+      if (p === "/icons.js") {
+        const js = await readFile(join(publicDir, "icons.js"), "utf8");
+        return send(res, 200, js, "application/javascript");
       }
       if (p === "/api/project") {
         const caps = await project.loadInstalled();
@@ -156,6 +225,28 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         const client = new RegistryClient(remoteUrl);
         const caps = await client.list();
         return send(res, 200, { capabilities: caps });
+      }
+      if (p === "/api/files") {
+        const tree = await walkTree(project.root, "");
+        return send(res, 200, { root: project.root, tree });
+      }
+      if (p === "/api/file" && req.method === "GET") {
+        const rel = url.searchParams.get("path");
+        if (!rel) return send(res, 400, { error: "path required" });
+        const abs = safeResolve(project.root, rel);
+        const st = await stat(abs).catch(() => null);
+        if (!st || !st.isFile()) return send(res, 404, { error: "not a file: " + rel });
+        const content = await readFile(abs, "utf8");
+        return send(res, 200, { path: rel, content, language: langForFile(rel), size: st.size });
+      }
+      if (p === "/api/file" && req.method === "PUT") {
+        const rel = url.searchParams.get("path");
+        if (!rel) return send(res, 400, { error: "path required" });
+        const abs = safeResolve(project.root, rel);
+        const body = await readJson(req) as { content?: string };
+        if (typeof body.content !== "string") return send(res, 400, { error: "content required" });
+        await writeFile(abs, body.content, "utf8");
+        return send(res, 200, { ok: true, path: rel, bytes: body.content.length });
       }
       return send(res, 404, { error: "not found: " + p });
     } catch (err) {
