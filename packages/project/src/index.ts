@@ -3,3 +3,4 @@ export * from "./library.js";
 export * from "./audit.js";
 export { writeSignature, readSignature, verifySignature, keyIdFromPublicKeyPath, SIGNATURE_FILE, type SignatureRecord, type VerifyResult as SignatureVerifyResult } from "./signature.js";
 export * from "./library-index.js";
+export * from "./scaffold/index.js";
