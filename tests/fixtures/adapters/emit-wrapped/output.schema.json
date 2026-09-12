@@ -1,5 +1,16 @@
 {
   "type": "object",
   "required": ["data"],
-  "properties": { "data": { "type": "object" } }
+  "properties": {
+    "data": {
+      "type": "object",
+      "required": ["events"],
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      }
+    }
+  }
 }
