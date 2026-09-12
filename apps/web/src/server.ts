@@ -1,10 +1,11 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { Project } from "@secstreet/project";
+import { Project, type AuditEntry } from "@secstreet/project";
 import { runCapability } from "@secstreet/runtime";
 import { runWorkflow } from "@secstreet/workflow";
 import { RegistryClient } from "@secstreet/service-registry";
+import { hashJson } from "@secstreet/capability";
 
 export interface WebServerOptions {
   projectRoot: string;
@@ -17,6 +18,35 @@ export interface WebServerHandle {
   port: number;
   url: string;
   close(): Promise<void>;
+}
+
+
+function auditFor(
+  manifest: import("@secstreet/contracts").CapabilityManifest,
+  integrity: string,
+  input: unknown,
+  outcome: AuditEntry["outcome"],
+  exitCode: number,
+  durationMs: number,
+  output: unknown,
+  opts: { workflow?: string; stepId?: string; kind?: AuditEntry["kind"] } = {}
+): AuditEntry {
+  return {
+    ts: new Date().toISOString(),
+    kind: opts.kind ?? "run",
+    capability: manifest.name,
+    version: manifest.version,
+    integrity,
+    trust: manifest.trust,
+    declared: manifest.permissions as string[],
+    inputHash: hashJson(input),
+    outputHash: output === undefined ? "" : hashJson(output),
+    exitCode,
+    durationMs,
+    outcome,
+    workflow: opts.workflow,
+    stepId: opts.stepId,
+  };
 }
 
 function send(res: ServerResponse, status: number, body: unknown, contentType = "application/json"): void {
@@ -82,13 +112,42 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         const caps = await project.loadInstalled();
         const c = caps.find((x) => x.manifest.name === body.name);
         if (!c) return send(res, 404, { error: "not installed: " + body.name });
+        const rec = project.manifestData.installed[body.name];
+        const recordedIntegrity = rec?.integrity ?? "";
+
+        const verified = await project.verify(body.name);
+        if (!verified[0]?.ok) {
+          await project.recordAudit(auditFor(c.manifest, recordedIntegrity, body.input ?? {}, "denied-integrity", 4, 0, undefined));
+          return send(res, 200, { ok: false, stdout: "", stderr: "integrity check failed for " + body.name, exitCode: 4, durationMs: 0 });
+        }
+
         const r = await runCapability({ capabilityDir: c.dir, manifest: c.manifest, input: body.input ?? {} });
-        return send(res, 200, { ok: r.ok, stdout: r.stdout, stderr: r.stderr, exitCode: r.exitCode, durationMs: r.durationMs });
+        if (!r.ok) {
+          const outcome: AuditEntry["outcome"] = r.deniedByPolicy ? "denied-policy" : "error";
+          await project.recordAudit(auditFor(c.manifest, recordedIntegrity, body.input ?? {}, outcome, r.exitCode, r.durationMs, undefined));
+          return send(res, 200, { ok: false, stdout: r.stdout, stderr: r.stderr, exitCode: r.exitCode, durationMs: r.durationMs });
+        }
+        const parsed = r.stdout.trim() ? JSON.parse(r.stdout) : undefined;
+        await project.recordAudit(auditFor(c.manifest, recordedIntegrity, body.input ?? {}, "ok", 0, r.durationMs, parsed));
+        return send(res, 200, { ok: true, stdout: r.stdout, stderr: r.stderr, exitCode: r.exitCode, durationMs: r.durationMs });
       }
       if (p === "/api/workflow" && req.method === "POST") {
         const body = await readJson(req) as { file?: string };
         if (!body.file) return send(res, 400, { error: "file required" });
+        const all = await project.verify();
+        const bad = all.filter((r) => !r.ok);
+        if (bad.length) {
+          return send(res, 200, { name: "", ok: false, steps: [], error: "integrity check failed for: " + bad.map((r) => r.name).join(", ") });
+        }
         const r = await runWorkflow({ workflowPath: resolve(project.root, body.file), capabilitiesDir: project.capabilitiesDir });
+        const capsByName = new Map((await project.loadInstalled()).map((c) => [c.manifest.name, c]));
+        for (const step of r.steps) {
+          const c = capsByName.get(step.capability);
+          if (!c) continue;
+          const rec = project.manifestData.installed[step.capability];
+          const outcome: AuditEntry["outcome"] = step.ok ? "ok" : (step.error?.startsWith("policy denied") ? "denied-policy" : "error");
+          await project.recordAudit(auditFor(c.manifest, rec?.integrity ?? "", step.output ?? {}, outcome, step.ok ? 0 : 1, step.durationMs, step.output, { kind: "workflow-step", workflow: r.name, stepId: step.id }));
+        }
         return send(res, 200, r);
       }
       if (p === "/api/remote/list") {
