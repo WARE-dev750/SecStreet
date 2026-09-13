@@ -675,6 +675,16 @@ function renderLibList() {
 async function openFileFromLibrary(name) {
   const data = await api("/api/library/" + encodeURIComponent(name));
   pushOutput("preview " + name + " (" + data.manifest.language + ", " + data.manifest.entrypoint + ")");
+  if (!state.bottomOpen) {
+    state.bottomOpen = true;
+    const shell = document.querySelector(".ide-shell");
+    if (shell) shell.classList.add("with-bottom");
+    document.querySelectorAll(".bottom-tabs .nav-link").forEach((x) => {
+      x.classList.toggle("active", x.dataset.btab === "output");
+    });
+    state.bottomTab = "output";
+    setTimeout(() => { if (state.editor) state.editor.layout(); }, 60);
+  }
   renderBottom();
 }
 
