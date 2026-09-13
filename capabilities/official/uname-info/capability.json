@@ -7,8 +7,13 @@
   "inputSchema": "input.schema.json",
   "outputSchema": "output.schema.json",
   "dependencies": [],
-  "os": ["linux", "darwin"],
-  "permissions": ["subprocess"],
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "permissions": [
+    "subprocess"
+  ],
   "risk": "low",
   "trust": "professional",
   "provenance": {
@@ -16,8 +21,17 @@
     "sourceAuthor": "SecStreet",
     "license": "MIT",
     "version": "0.1.0",
-    "modifications": ["wraps system uname binary; parsing implemented in SecStreet"]
+    "modifications": [
+      "wraps system uname binary; parsing implemented in SecStreet"
+    ]
   },
   "maintainer": "SecStreet",
-  "execution": { "timeoutMs": 5000 }
+  "execution": {
+    "timeoutMs": 5000
+  },
+  "tags": [
+    "system",
+    "recon",
+    "linux"
+  ]
 }

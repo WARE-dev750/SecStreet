@@ -7,11 +7,34 @@
   "inputSchema": "input.schema.json",
   "outputSchema": "output.schema.json",
   "dependencies": [],
-  "os": ["linux", "darwin"],
-  "permissions": ["subprocess", "filesystem:read"],
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "permissions": [
+    "subprocess",
+    "filesystem:read"
+  ],
   "risk": "low",
   "trust": "professional",
-  "provenance": { "sourceRepo": "https://github.com/SecStreet/SecStreet", "sourceAuthor": "SecStreet", "license": "Proprietary", "version": "0.1.0", "modifications": ["wraps readelf"] },
+  "provenance": {
+    "sourceRepo": "https://github.com/SecStreet/SecStreet",
+    "sourceAuthor": "SecStreet",
+    "license": "Proprietary",
+    "version": "0.1.0",
+    "modifications": [
+      "wraps readelf"
+    ]
+  },
   "maintainer": "SecStreet",
-  "execution": { "timeoutMs": 5000 }
+  "execution": {
+    "timeoutMs": 5000
+  },
+  "tags": [
+    "elf",
+    "dynamic",
+    "libraries",
+    "reverse-engineering",
+    "linux"
+  ]
 }

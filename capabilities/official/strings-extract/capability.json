@@ -7,8 +7,14 @@
   "inputSchema": "input.schema.json",
   "outputSchema": "output.schema.json",
   "dependencies": [],
-  "os": ["linux", "darwin"],
-  "permissions": ["subprocess", "filesystem:read"],
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "permissions": [
+    "subprocess",
+    "filesystem:read"
+  ],
   "risk": "low",
   "trust": "professional",
   "provenance": {
@@ -16,8 +22,17 @@
     "sourceAuthor": "SecStreet",
     "license": "Proprietary",
     "version": "0.1.0",
-    "modifications": ["wraps system strings binary; parsing implemented in SecStreet"]
+    "modifications": [
+      "wraps system strings binary; parsing implemented in SecStreet"
+    ]
   },
   "maintainer": "SecStreet",
-  "execution": { "timeoutMs": 10000 }
+  "execution": {
+    "timeoutMs": 10000
+  },
+  "tags": [
+    "strings",
+    "binary",
+    "reverse-engineering"
+  ]
 }

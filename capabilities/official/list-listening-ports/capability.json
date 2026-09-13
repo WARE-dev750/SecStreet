@@ -7,8 +7,12 @@
   "inputSchema": "input.schema.json",
   "outputSchema": "output.schema.json",
   "dependencies": [],
-  "os": ["linux"],
-  "permissions": ["subprocess"],
+  "os": [
+    "linux"
+  ],
+  "permissions": [
+    "subprocess"
+  ],
   "risk": "low",
   "trust": "professional",
   "provenance": {
@@ -16,8 +20,18 @@
     "sourceAuthor": "SecStreet",
     "license": "MIT",
     "version": "0.1.0",
-    "modifications": ["wraps system ss binary; parsing implemented in SecStreet"]
+    "modifications": [
+      "wraps system ss binary; parsing implemented in SecStreet"
+    ]
   },
   "maintainer": "SecStreet",
-  "execution": { "timeoutMs": 5000 }
+  "execution": {
+    "timeoutMs": 5000
+  },
+  "tags": [
+    "network",
+    "ports",
+    "recon",
+    "linux"
+  ]
 }

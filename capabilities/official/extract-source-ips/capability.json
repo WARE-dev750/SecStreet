@@ -7,7 +7,10 @@
   "inputSchema": "input.schema.json",
   "outputSchema": "output.schema.json",
   "dependencies": [],
-  "os": ["linux", "darwin"],
+  "os": [
+    "linux",
+    "darwin"
+  ],
   "permissions": [],
   "risk": "low",
   "trust": "community",
@@ -18,5 +21,12 @@
     "version": "0.1.0",
     "modifications": []
   },
-  "maintainer": "SecStreet"
+  "maintainer": "SecStreet",
+  "tags": [
+    "auth",
+    "log",
+    "network",
+    "python",
+    "defensive"
+  ]
 }

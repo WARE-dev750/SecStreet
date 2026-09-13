@@ -7,11 +7,32 @@
   "inputSchema": "input.schema.json",
   "outputSchema": "output.schema.json",
   "dependencies": [],
-  "os": ["linux"],
-  "permissions": ["subprocess", "filesystem:read"],
+  "os": [
+    "linux"
+  ],
+  "permissions": [
+    "subprocess",
+    "filesystem:read"
+  ],
   "risk": "low",
   "trust": "professional",
-  "provenance": { "sourceRepo": "https://github.com/SecStreet/SecStreet", "sourceAuthor": "SecStreet", "license": "Proprietary", "version": "0.1.0", "modifications": ["wraps ldd"] },
+  "provenance": {
+    "sourceRepo": "https://github.com/SecStreet/SecStreet",
+    "sourceAuthor": "SecStreet",
+    "license": "Proprietary",
+    "version": "0.1.0",
+    "modifications": [
+      "wraps ldd"
+    ]
+  },
   "maintainer": "SecStreet",
-  "execution": { "timeoutMs": 5000 }
+  "execution": {
+    "timeoutMs": 5000
+  },
+  "tags": [
+    "libraries",
+    "dependencies",
+    "elf",
+    "linux"
+  ]
 }

@@ -7,8 +7,14 @@
   "inputSchema": "input.schema.json",
   "outputSchema": "output.schema.json",
   "dependencies": [],
-  "os": ["linux", "darwin"],
-  "permissions": ["subprocess", "filesystem:read"],
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "permissions": [
+    "subprocess",
+    "filesystem:read"
+  ],
   "risk": "low",
   "trust": "professional",
   "provenance": {
@@ -16,8 +22,18 @@
     "sourceAuthor": "SecStreet",
     "license": "Proprietary",
     "version": "0.1.0",
-    "modifications": ["wraps system openssl binary; parsing implemented in SecStreet"]
+    "modifications": [
+      "wraps system openssl binary; parsing implemented in SecStreet"
+    ]
   },
   "maintainer": "SecStreet",
-  "execution": { "timeoutMs": 5000 }
+  "execution": {
+    "timeoutMs": 5000
+  },
+  "tags": [
+    "certificate",
+    "x509",
+    "crypto",
+    "tls"
+  ]
 }
