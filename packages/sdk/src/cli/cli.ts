@@ -3,7 +3,7 @@ import { resolve, join } from "node:path";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { runCapability, evaluatePolicy } from "@secstreet/runtime";
 import { runWorkflow, checkCompatibility } from "@secstreet/workflow";
-import { Project, listLibrary, searchLibrary, resolveLibraries, writeSignature, buildLibraryIndex, verifyLibraryIndex, readLibraryIndex, writeLibraryIndex, scaffoldCapability, publishCapability, type AuditEntry } from "@secstreet/project";
+import { Project, listLibrary, searchLibrary, resolveLibraries, writeSignature, buildLibraryIndex, verifyLibraryIndex, readLibraryIndex, writeLibraryIndex, scaffoldCapability, publishCapability, ingestTool, type AuditEntry } from "@secstreet/project";
 import { hashJson, loadRegistry } from "@secstreet/capability";
 import { DEFAULT_POLICY, type CapabilityManifest, type CapabilityTrust, type CapabilityLanguage, type CapabilityRisk } from "@secstreet/contracts";
 import { generateEd25519KeyPair, keyIdFromPublicKey, readPrivateKeyPem, readPublicKeyPem } from "@secstreet/security";
@@ -12,7 +12,7 @@ import { RegistryClient } from "@secstreet/service-registry";
 import { analyzeRepo, type FetchLike } from "@secstreet/analyzer";
 
 function usage(): void {
-  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify|audit|keygen|trust|keys|sign|lib|new|publish|ai|remote|analyze>");
+  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify|audit|keygen|trust|keys|sign|lib|new|publish|ai|remote|analyze|ingest>");
 }
 function getFlag(args: string[], flag: string): string | null {
   const i = args.indexOf(flag);
@@ -441,6 +441,53 @@ async function main(): Promise<void> {
       console.error(err instanceof Error ? err.message : String(err));
       process.exit(1);
     }
+  }
+  if (cmd === "ingest") {
+    const name = positionals(rest)[0];
+    const tool = getFlag(rest, "--tool");
+    const argsFlag = getFlag(rest, "--args");
+    const samplePath = getFlag(rest, "--sample");
+    const inputMode = (getFlag(rest, "--input") ?? "file") as "file" | "text";
+    const description = getFlag(rest, "--description") ?? undefined;
+    const trust = (getFlag(rest, "--trust") ?? "community") as CapabilityTrust;
+    const risk = (getFlag(rest, "--risk") ?? "low") as CapabilityRisk;
+    const maintainer = getFlag(rest, "--maintainer") ?? "SecStreet";
+    const author = getFlag(rest, "--author") ?? maintainer;
+    const license = getFlag(rest, "--license") ?? "Proprietary";
+    const timeoutFlag = getFlag(rest, "--timeout-ms");
+    const timeoutMs = timeoutFlag ? Number(timeoutFlag) : undefined;
+    if (!name || !tool || !argsFlag || !samplePath) {
+      console.error("usage: ingest <name> --tool <binary> --args \"<arg1 arg2 __INPUT__>\" --sample <path> [--input file|text] [--description <s>] [--trust <t>] [--risk <r>] [--timeout-ms <n>]");
+      process.exit(2);
+    }
+    const root = resolve(process.cwd(), "capabilities", "official");
+    const args = argsFlag.split(/\s+/).filter(Boolean);
+    const result = await ingestTool({
+      root,
+      name,
+      tool,
+      args,
+      inputMode,
+      samplePath,
+      description,
+      trust,
+      risk,
+      maintainer,
+      author,
+      license,
+      timeoutMs,
+    });
+    console.log("scaffolded " + name);
+    console.log("  tool          " + result.tool + " " + result.args.join(" "));
+    console.log("  sample        " + result.samplePath);
+    console.log("  captured      " + result.capturedBytes + " bytes across " + result.capturedLines + " lines");
+    console.log("");
+    console.log("next:");
+    console.log("  1. open " + result.dir + "/index.js and implement parseOutput");
+    console.log("  2. update " + result.dir + "/output.schema.json to match");
+    console.log("  3. update tests/unit/" + name + ".test.ts to assert the parsed shape");
+    console.log("  4. run: pnpm test");
+    return;
   }
   if (cmd === "run") {
     const name = positionals(rest)[0];
