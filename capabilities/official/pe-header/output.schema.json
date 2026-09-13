@@ -1,0 +1,37 @@
+{
+  "type": "object",
+  "required": ["path", "machine", "numberOfSections", "timestamp", "characteristics", "sections"],
+  "properties": {
+    "path": { "type": "string" },
+    "machine": { "type": "string" },
+    "machineCode": { "type": "number" },
+    "numberOfSections": { "type": "number" },
+    "timestamp": { "type": "number" },
+    "timestampIso": { "type": "string" },
+    "characteristics": { "type": "array", "items": { "type": "string" } },
+    "optionalHeaderMagic": { "type": "string" },
+    "subsystem": { "type": "string" },
+    "dllCharacteristics": { "type": "array", "items": { "type": "string" } },
+    "entryPoint": { "type": "number" },
+    "imageBase": { "type": "string" },
+    "sectionAlignment": { "type": "number" },
+    "fileAlignment": { "type": "number" },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "virtualAddress", "virtualSize", "rawSize", "rawOffset"],
+        "properties": {
+          "name": { "type": "string" },
+          "virtualAddress": { "type": "number" },
+          "virtualSize": { "type": "number" },
+          "rawSize": { "type": "number" },
+          "rawOffset": { "type": "number" },
+          "characteristics": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "isDll": { "type": "boolean" },
+    "isExe": { "type": "boolean" }
+  }
+}

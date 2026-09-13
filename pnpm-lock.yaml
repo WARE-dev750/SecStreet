@@ -75,6 +75,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/workflow
 
+  capabilities/official/pe-header: {}
+
   packages/ai:
     dependencies:
       '@secstreet/capability':

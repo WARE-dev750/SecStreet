@@ -1,0 +1,23 @@
+{
+  "name": "pe-header",
+  "version": "0.1.0",
+  "description": "Parse the Portable Executable headers of a Windows binary: DOS stub, COFF file header, optional header, section table, and imports.",
+  "language": "javascript",
+  "entrypoint": "index.js",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux", "darwin"],
+  "permissions": ["filesystem:read"],
+  "risk": "low",
+  "trust": "professional",
+  "provenance": {
+    "sourceRepo": "https://github.com/SecStreet/SecStreet",
+    "sourceAuthor": "SecStreet",
+    "license": "Proprietary",
+    "version": "0.1.0",
+    "modifications": ["pure JavaScript implementation; no external tool or library used"]
+  },
+  "maintainer": "SecStreet",
+  "execution": { "timeoutMs": 5000 }
+}
