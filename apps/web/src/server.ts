@@ -155,6 +155,18 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         const js = await readFile(join(publicDir, "icons.js"), "utf8");
         return send(res, 200, js, "application/javascript");
       }
+      if (p === "/shared.css") {
+        const css = await readFile(join(publicDir, "shared.css"), "utf8");
+        return send(res, 200, css, "text/css");
+      }
+      if (p === "/library.css") {
+        const css = await readFile(join(publicDir, "library.css"), "utf8");
+        return send(res, 200, css, "text/css");
+      }
+      if (p === "/library.js") {
+        const js = await readFile(join(publicDir, "library.js"), "utf8");
+        return send(res, 200, js, "application/javascript");
+      }
       if (p === "/canvas.js") {
         const js = await readFile(join(publicDir, "canvas.js"), "utf8");
         return send(res, 200, js, "application/javascript");
