@@ -26,6 +26,7 @@
     "@secstreet/security": "workspace:*",
     "@secstreet/ai": "workspace:*",
     "@secstreet/service-registry": "workspace:*",
-    "@secstreet/app-web": "workspace:*"
+    "@secstreet/app-web": "workspace:*",
+    "@secstreet/analyzer": "workspace:*"
   }
 }

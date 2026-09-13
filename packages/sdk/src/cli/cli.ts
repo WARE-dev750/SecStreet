@@ -9,9 +9,10 @@ import { DEFAULT_POLICY, type CapabilityManifest, type CapabilityTrust, type Cap
 import { generateEd25519KeyPair, keyIdFromPublicKey, readPrivateKeyPem, readPublicKeyPem } from "@secstreet/security";
 import { MockProvider, OpenAICompatibleProvider, generateAdapter, scaffoldAdapter, type AIProvider } from "@secstreet/ai";
 import { RegistryClient } from "@secstreet/service-registry";
+import { analyzeRepo, type FetchLike } from "@secstreet/analyzer";
 
 function usage(): void {
-  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify|audit|keygen|trust|keys|sign|lib|new|publish|ai|remote>");
+  console.log("secstreet <init|list|add|remove|inspect|search|browse|run|workflow|compat|policy|check|verify|audit|keygen|trust|keys|sign|lib|new|publish|ai|remote|analyze>");
 }
 function getFlag(args: string[], flag: string): string | null {
   const i = args.indexOf(flag);
@@ -406,6 +407,40 @@ async function main(): Promise<void> {
     }
     console.error("usage: remote <list|inspect|index|add> --url <url>");
     process.exit(2);
+  }
+  if (cmd === "analyze") {
+    const url = positionals(rest)[0];
+    if (!url) {
+      console.error("usage: analyze <github-url>");
+      process.exit(2);
+    }
+    const jsonFlag = rest.includes("--json");
+    const fetchImpl: FetchLike = (u, init) => fetch(u, init);
+    try {
+      const r = await analyzeRepo(url, fetchImpl);
+      if (jsonFlag) {
+        console.log(JSON.stringify(r, null, 2));
+        process.exit(r.recommendation.action === "avoid" || r.recommendation.action === "review" ? 1 : 0);
+      }
+      console.log("");
+      console.log("  " + r.owner + "/" + r.repo);
+      console.log("  " + (r.description ?? "(no description)"));
+      console.log("");
+      console.log("  license       " + r.license.spdx + " (" + r.license.verdict + ")");
+      console.log("  copyable      " + (r.license.copyable ? "yes" : "no"));
+      console.log("  language      " + (r.primaryLanguage ?? "unknown"));
+      console.log("  stars         " + r.stars);
+      console.log("  releases      " + (r.hasBinaryReleases ? "with binaries" : "none or unknown"));
+      console.log("  last update   " + (r.updatedAt ?? "unknown"));
+      console.log("");
+      console.log("  action        " + r.recommendation.action.toUpperCase());
+      console.log("  reason        " + r.recommendation.reason);
+      console.log("");
+      process.exit(r.recommendation.action === "avoid" || r.recommendation.action === "review" ? 1 : 0);
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
   }
   if (cmd === "run") {
     const name = positionals(rest)[0];

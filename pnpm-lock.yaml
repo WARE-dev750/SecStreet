@@ -11,6 +11,9 @@ importers:
       '@secstreet/ai':
         specifier: workspace:*
         version: link:packages/ai
+      '@secstreet/analyzer':
+        specifier: workspace:*
+        version: link:packages/analyzer
       '@secstreet/app-web':
         specifier: workspace:*
         version: link:apps/web
@@ -84,6 +87,12 @@ importers:
         specifier: workspace:*
         version: link:../workflow
 
+  packages/analyzer:
+    dependencies:
+      '@secstreet/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
   packages/capability:
     dependencies:
       '@secstreet/contracts':
@@ -118,6 +127,9 @@ importers:
       '@secstreet/ai':
         specifier: workspace:*
         version: link:../ai
+      '@secstreet/analyzer':
+        specifier: workspace:*
+        version: link:../analyzer
       '@secstreet/capability':
         specifier: workspace:*
         version: link:../capability
