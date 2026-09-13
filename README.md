@@ -32,4 +32,4 @@ Community contributions require a signed Contributor License Agreement.
 
 ## Contact
 
-legal@secstreet.dev
+https://www.linkedin.com/in/robel-a-043a183a6/
