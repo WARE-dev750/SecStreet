@@ -306,6 +306,10 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
           model: generated.model,
         });
       }
+      if (p === "/library") {
+        const html = await readFile(join(publicDir, "library.html"), "utf8");
+        return send(res, 200, html, "text/html");
+      }
       if (p === "/api/library") {
         const caps = await listLibrary({ label: "official", path: libraryRoot });
         return send(res, 200, {
