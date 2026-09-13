@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "required": ["path", "needed", "entries"],
+  "properties": {
+    "path": { "type": "string" },
+    "needed": { "type": "array", "items": { "type": "string" } },
+    "rpath": { "type": "array", "items": { "type": "string" } },
+    "runpath": { "type": "array", "items": { "type": "string" } },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tag", "value"],
+        "properties": { "tag": { "type": "string" }, "value": { "type": "string" } }
+      }
+    }
+  }
+}

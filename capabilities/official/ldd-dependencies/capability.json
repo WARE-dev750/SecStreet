@@ -1,0 +1,17 @@
+{
+  "name": "ldd-dependencies",
+  "version": "0.1.0",
+  "description": "List shared-library dependencies of an ELF binary using ldd, with the resolved path or 'not found' marker.",
+  "language": "javascript",
+  "entrypoint": "index.js",
+  "inputSchema": "input.schema.json",
+  "outputSchema": "output.schema.json",
+  "dependencies": [],
+  "os": ["linux"],
+  "permissions": ["subprocess", "filesystem:read"],
+  "risk": "low",
+  "trust": "professional",
+  "provenance": { "sourceRepo": "https://github.com/SecStreet/SecStreet", "sourceAuthor": "SecStreet", "license": "Proprietary", "version": "0.1.0", "modifications": ["wraps ldd"] },
+  "maintainer": "SecStreet",
+  "execution": { "timeoutMs": 5000 }
+}

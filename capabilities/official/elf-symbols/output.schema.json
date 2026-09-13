@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "required": ["path", "count", "symbols"],
+  "properties": {
+    "path": { "type": "string" },
+    "count": { "type": "number" },
+    "symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "bind", "vis", "ndx"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "bind": { "type": "string" },
+          "vis": { "type": "string" },
+          "ndx": { "type": "string" }
+        }
+      }
+    }
+  }
+}

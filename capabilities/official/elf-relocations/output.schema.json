@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "required": ["path", "sections"],
+  "properties": {
+    "path": { "type": "string" },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["section", "entries"],
+        "properties": {
+          "section": { "type": "string" },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["offset", "info", "type", "symbol"],
+              "properties": {
+                "offset": { "type": "string" },
+                "info": { "type": "string" },
+                "type": { "type": "string" },
+                "symbol": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

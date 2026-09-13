@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "required": ["path", "dependencies", "missing"],
+  "properties": {
+    "path": { "type": "string" },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "resolved"],
+        "properties": { "name": { "type": "string" }, "resolved": { "type": "string" } }
+      }
+    },
+    "missing": { "type": "array", "items": { "type": "string" } }
+  }
+}
