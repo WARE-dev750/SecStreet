@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "required": ["path", "subject", "issuer", "serial", "notBefore", "notAfter"],
+  "properties": {
+    "path": { "type": "string" },
+    "version": { "type": "string" },
+    "serial": { "type": "string" },
+    "signatureAlgorithm": { "type": "string" },
+    "issuer": { "type": "string" },
+    "notBefore": { "type": "string" },
+    "notAfter": { "type": "string" },
+    "subject": { "type": "string" },
+    "publicKeyAlgorithm": { "type": "string" },
+    "publicKeyBits": { "type": "string" },
+    "subjectAltNames": { "type": "array", "items": { "type": "string" } },
+    "isCA": { "type": "boolean" },
+    "raw": { "type": "string" }
+  }
+}
