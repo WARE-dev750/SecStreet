@@ -368,6 +368,19 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
           outputSchema,
         });
       }
+      if (p === "/api/library/install" && req.method === "POST") {
+        const body = await readJson(req) as { name?: string };
+        if (!body.name) return send(res, 400, { ok: false, error: "name required" });
+        const caps = await listLibrary({ label: "official", path: libraryRoot });
+        const c = caps.find((x) => x.manifest.name === body.name);
+        if (!c) return send(res, 404, { ok: false, error: "not in library: " + body.name });
+        try {
+          await project.install(c, "library:official", { requireSignatureFor: ["verified", "restricted"] });
+          return send(res, 200, { ok: true, name: c.manifest.name, version: c.manifest.version });
+        } catch (err) {
+          return send(res, 500, { ok: false, error: (err as Error).message });
+        }
+      }
       return send(res, 404, { error: "not found: " + p });
     } catch (err) {
       return send(res, 500, { error: (err as Error).message });

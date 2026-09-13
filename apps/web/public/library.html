@@ -130,7 +130,11 @@ async function selectCap(name) {
   const tags = (m.tags || []).join(", ") || "—";
   $("detail").innerHTML =
     '<div class="dcrumb"><a href="/">SecStreet</a> / library / ' + m.name + '</div>' +
-    '<h1>' + m.name + ' <span style="color:var(--cream-3);font-size:13px;font-weight:400">@' + m.version + '</span></h1>' +
+    '<div style="display:flex;align-items:baseline;gap:14px;margin-bottom:4px">' +
+      '<h1 style="margin:0">' + m.name + ' <span style="color:var(--cream-3);font-size:13px;font-weight:400">@' + m.version + '</span></h1>' +
+      '<button id="installBtn" style="margin-left:auto;padding:7px 16px;background:linear-gradient(180deg,var(--gold-hi),var(--gold));color:var(--ink);font-weight:600;font-size:12px;letter-spacing:.02em;border-radius:5px;box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 1px 2px rgba(0,0,0,.3);cursor:pointer">Install to project</button>' +
+    '</div>' +
+    '<div id="installMsg" style="font-size:11.5px;font-family:var(--mono);margin-bottom:6px;min-height:16px"></div>' +
     '<div class="ddesc">' + escapeHtml(m.description) + '</div>' +
     '<div class="kv">' +
       '<span class="k">trust</span><span class="v"><span class="badge ' + trustClass(m.trust) + '">' + m.trust + '</span></span>' +
@@ -148,6 +152,37 @@ async function selectCap(name) {
     '<div class="section">Entrypoint · ' + m.entrypoint + '</div>' +
     '<div class="lib-code" id="code"></div>';
   if (editor) { editor.dispose(); editor = null; }
+  $("installBtn").addEventListener("click", async () => {
+    const btn = $("installBtn");
+    const msg = $("installMsg");
+    btn.disabled = true;
+    btn.textContent = "Installing…";
+    msg.textContent = "";
+    msg.style.color = "var(--cream-3)";
+    try {
+      const r = await api("/api/library/install", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: m.name })
+      });
+      if (r.ok) {
+        btn.textContent = "Installed";
+        btn.style.background = "linear-gradient(180deg, #a8c47a, var(--ok))";
+        msg.style.color = "var(--ok)";
+        msg.textContent = "installed " + r.name + "@" + r.version + " into your project";
+      } else {
+        btn.disabled = false;
+        btn.textContent = "Install to project";
+        msg.style.color = "var(--err)";
+        msg.textContent = r.error || "install failed";
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = "Install to project";
+      msg.style.color = "var(--err)";
+      msg.textContent = err.message;
+    }
+  });
   editor = monaco.editor.create($("code"), {
     value: data.entrypointCode || "(no code)",
     language: "javascript",
