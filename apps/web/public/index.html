@@ -3,94 +3,93 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SecStreet</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/editor/editor.main.css">
 </head><body>
-<div class="shell" id="shell">
 
-  <div class="titlebar">
-    <span class="brand">SECSTREET</span>
-    <span class="crumb" id="crumb">project</span>
-    <span class="spacer"></span>
-    <a class="btn" href="/library" title="Browse the capability library" style="text-decoration:none">Library</a>
-    <button class="btn" id="btnPalette" title="Command palette (Ctrl+P)">⌘ Files</button>
-    <button class="btn" id="btnToggleRight" title="Toggle right panel">Panel</button>
-    <button class="btn" id="btnToggleBottom" title="Toggle bottom panel">Console</button>
-  </div>
-
-  <div class="activity">
-    <div class="icon active" data-view="explorer" title="Explorer">
-      <svg viewBox="0 0 24 24"><path d="M3 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-    </div>
-    <div class="icon" data-view="capabilities" title="Capabilities">
-      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-    </div>
-    <div class="icon" data-view="workflows" title="Workflows">
-      <svg viewBox="0 0 24 24"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6.5 7.5l4.5 9M17.5 7.5L13 16.5"/></svg>
-    </div>
-    <div class="icon" data-view="audit" title="Audit">
-      <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
-    </div>
-    <div class="icon" data-view="registry" title="Registry">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"/></svg>
+<nav class="navbar navbar-expand navbar-light bg-white border-bottom">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-semibold mb-0" href="/"><span class="text-primary">■</span> SECSTREET</a>
+    <span class="navbar-text small text-muted ms-2" id="crumb">project</span>
+    <div class="ms-auto d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary" id="btnLibrary"><i class="bi bi-box-seam me-1"></i>Library</button>
+      <button class="btn btn-sm btn-outline-secondary" id="btnPalette"><i class="bi bi-search me-1"></i>Files</button>
+      <button class="btn btn-sm btn-outline-secondary" id="btnToggleBottom"><i class="bi bi-terminal me-1"></i>Console</button>
+      <button class="btn btn-sm btn-outline-secondary" id="btnToggleRight"><i class="bi bi-layout-sidebar-reverse"></i></button>
     </div>
   </div>
+</nav>
 
-  <div class="sidebar" id="sidebar">
-    <div class="sidebar-head"><span id="sidebarTitle">Explorer</span><button id="sidebarToggle" title="Hide">×</button></div>
+<div class="ide-shell">
+  <div class="activity-rail">
+    <button class="rail-btn active" data-view="explorer" title="Explorer"><i class="bi bi-files"></i></button>
+    <button class="rail-btn" data-view="capabilities" title="Capabilities"><i class="bi bi-grid-3x3-gap"></i></button>
+    <button class="rail-btn" data-view="workflows" title="Workflows"><i class="bi bi-diagram-3"></i></button>
+    <button class="rail-btn" data-view="audit" title="Audit"><i class="bi bi-list-check"></i></button>
+    <button class="rail-btn" data-view="registry" title="Registry"><i class="bi bi-globe2"></i></button>
+  </div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <span id="sidebarTitle">Explorer</span>
+      <button class="btn btn-sm btn-link text-muted p-0" id="sidebarToggle"><i class="bi bi-x"></i></button>
+    </div>
     <div class="sidebar-body" id="sidebarBody"></div>
-  </div>
+  </aside>
 
-  <div class="main" id="mainArea">
-    <div class="tabs" id="tabs"></div>
-    <div class="breadcrumb" id="breadcrumb"></div>
+  <main class="main" id="mainArea">
+    <ul class="nav nav-tabs tabs-bar" id="tabs"></ul>
+    <div class="breadcrumb-bar" id="breadcrumb"></div>
     <div class="main-content" id="mainContent">
       <div class="editor-host" id="editorHost">
         <div class="empty-state" id="emptyState">
-          <div class="empty-inner">
-            <div class="empty-hint">No file open</div>
-            <div class="empty-actions">
-              <span><kbd>Ctrl</kbd>+<kbd>P</kbd> &nbsp;files</span>
-              <span><kbd>Ctrl</kbd>+<kbd>`</kbd> &nbsp;console</span>
+          <div class="text-center">
+            <i class="bi bi-file-earmark-code display-4 text-muted opacity-25"></i>
+            <div class="text-muted mt-3">No file open</div>
+            <div class="text-muted small mt-2">
+              <kbd>Ctrl</kbd>+<kbd>P</kbd> files
+              &nbsp;&nbsp;
+              <kbd>Ctrl</kbd>+<kbd>`</kbd> console
             </div>
           </div>
         </div>
       </div>
       <div class="canvas-host" id="canvasHost"></div>
     </div>
-    <div class="bottom" id="bottom">
-      <div class="bottom-tabs">
-        <div class="bt active" data-btab="output">Output</div>
-        <div class="bt" data-btab="audit">Audit</div>
-        <div class="bt" data-btab="problems">Problems</div>
-        <div class="bt" data-btab="terminal">Terminal</div>
-        <div class="bottom-spacer"></div>
-        <button class="bottom-close" id="bottomClose" title="Close">×</button>
-      </div>
+    <div class="bottom-panel" id="bottom">
+      <ul class="nav nav-tabs bottom-tabs">
+        <li class="nav-item"><button class="nav-link active" data-btab="output">Output</button></li>
+        <li class="nav-item"><button class="nav-link" data-btab="audit">Audit</button></li>
+        <li class="nav-item"><button class="nav-link" data-btab="problems">Problems</button></li>
+        <li class="nav-item"><button class="nav-link" data-btab="terminal">Terminal</button></li>
+        <li class="ms-auto d-flex align-items-center pe-2"><button class="btn btn-sm btn-link text-muted p-0" id="bottomClose"><i class="bi bi-x-lg"></i></button></li>
+      </ul>
       <div class="bottom-body" id="bottomBody"></div>
     </div>
-  </div>
+  </main>
 
-  <div class="right" id="right">
-    <div class="right-tabs">
-      <div class="rt active" data-rtab="inspector">Inspector</div>
-      <div class="rt" data-rtab="ai">AI</div>
-    </div>
+  <aside class="right-panel" id="right">
+    <ul class="nav nav-tabs right-tabs">
+      <li class="nav-item"><button class="nav-link active" data-rtab="inspector">Inspector</button></li>
+      <li class="nav-item"><button class="nav-link" data-rtab="ai">AI</button></li>
+      <li class="nav-item"><button class="nav-link" data-rtab="library">Library</button></li>
+    </ul>
     <div class="right-body" id="rightBody"></div>
-  </div>
-
-  <div class="statusbar">
-    <span class="item"><span class="dot"></span><span id="statusProject">project</span></span>
-    <span class="item" id="statusFile">—</span>
-    <span class="item" id="statusLang">plaintext</span>
-    <span class="spacer"></span>
-    <span class="item gold" id="statusCaps">0 caps</span>
-    <span class="item" id="statusBranch">main</span>
-    <span class="item" id="statusPort"></span>
-  </div>
+  </aside>
 </div>
 
-<div class="palette-wrap" id="paletteWrap">
+<footer class="status-bar">
+  <span><i class="bi bi-circle-fill text-success" style="font-size:6px"></i> <span id="statusProject">project</span></span>
+  <span class="text-muted" id="statusFile">—</span>
+  <span class="text-muted" id="statusLang">plaintext</span>
+  <span class="ms-auto" id="statusCaps">0 caps</span>
+  <span class="text-muted" id="statusBranch">main</span>
+  <span class="text-muted" id="statusPort"></span>
+</footer>
+
+<div class="palette-backdrop" id="paletteWrap">
   <div class="palette">
     <input id="paletteInput" placeholder="Type a file name…" autocomplete="off" spellcheck="false">
     <div class="palette-list" id="paletteList"></div>

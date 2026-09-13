@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
 import { readFile, readdir, stat, writeFile, rm, mkdir } from "node:fs/promises";
-import { join, resolve, normalize } from "node:path";
+import { join, resolve, normalize, relative } from "node:path";
 import { Project, searchLibraryRanked, listLibrary, type AuditEntry } from "@secstreet/project";
 import { runCapability } from "@secstreet/runtime";
 import { runWorkflow } from "@secstreet/workflow";
@@ -392,6 +392,25 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         } catch (err) {
           return send(res, 500, { ok: false, error: (err as Error).message });
         }
+      }
+      if (p === "/api/library/export" && req.method === "POST") {
+        const body = await readJson(req) as { name?: string; targetPath?: string };
+        if (!body.name) return send(res, 400, { ok: false, error: "name required" });
+        const target = body.targetPath ?? "";
+        const caps = await listLibrary({ label: "official", path: libraryRoot });
+        const c = caps.find((x) => x.manifest.name === body.name);
+        if (!c) return send(res, 404, { ok: false, error: "not in library: " + body.name });
+        const entryRel = c.manifest.entrypoint;
+        const entryAbs = join(c.dir, entryRel);
+        const ext = entryRel.includes(".") ? "." + entryRel.split(".").pop() : "";
+        const targetDir = safeResolve(project.root, target);
+        await mkdir(targetDir, { recursive: true });
+        const outName = body.name + ext;
+        const outAbs = join(targetDir, outName);
+        const content = await readFile(entryAbs, "utf8");
+        await writeFile(outAbs, content, "utf8");
+        const rel = relative(project.root, outAbs).split(/[\\/]/).join("/");
+        return send(res, 200, { ok: true, path: rel });
       }
       return send(res, 404, { error: "not found: " + p });
     } catch (err) {

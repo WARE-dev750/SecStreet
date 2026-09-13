@@ -35,25 +35,25 @@ async function api(path, opts) {
 require.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs" } });
 require(["vs/editor/editor.main"], () => {
   monaco.editor.defineTheme("secstreet", {
-    base: "vs-dark",
+    base: "vs",
     inherit: true,
     rules: [
-      { token: "comment", foreground: "7a6f64", fontStyle: "italic" },
-      { token: "string", foreground: "c9a961" },
-      { token: "keyword", foreground: "cf7a68" },
-      { token: "number", foreground: "8ba5b8" },
-      { token: "type", foreground: "8aad5c" }
+      { token: "comment", foreground: "80868b", fontStyle: "italic" },
+      { token: "string", foreground: "188038" },
+      { token: "keyword", foreground: "1967d2" },
+      { token: "number", foreground: "9334e6" },
+      { token: "type", foreground: "b06000" }
     ],
     colors: {
-      "editor.background": "#1a1614",
-      "editor.foreground": "#e8dfd6",
-      "editorLineNumber.foreground": "#4a3f38",
-      "editorLineNumber.activeForeground": "#c9a961",
-      "editor.selectionBackground": "#3d322d",
-      "editor.lineHighlightBackground": "#221d1a",
-      "editorCursor.foreground": "#c9a961",
-      "editorIndentGuide.background": "#2f2724",
-      "editorIndentGuide.activeBackground": "#3d322d"
+      "editor.background": "#ffffff",
+      "editor.foreground": "#1f1f23",
+      "editorLineNumber.foreground": "#dadce0",
+      "editorLineNumber.activeForeground": "#1a73e8",
+      "editor.selectionBackground": "#e8f0fe",
+      "editor.lineHighlightBackground": "#f8f9fa",
+      "editorCursor.foreground": "#1a73e8",
+      "editorIndentGuide.background": "#f0f0f2",
+      "editorIndentGuide.activeBackground": "#dadce0"
     }
   });
   state.monaco = monaco;
@@ -275,16 +275,21 @@ function renderTabs() {
   for (const t of state.tabs) {
     const name = t.path.split("/").pop();
     const active = state.activeTab === t.path ? " active" : "";
-    html += '<div class="tab' + active + '" data-path="' + t.path + '"><span>' + name + (t.dirty ? " ●" : "") + '</span><span class="close">×</span></div>';
+    html += '<li class="nav-item"><a class="nav-link' + active + '" data-path="' + t.path + '" href="#">' +
+      '<span>' + name + (t.dirty ? " ●" : "") + '</span>' +
+      '<i class="bi bi-x tab-close" data-close="' + t.path + '"></i>' +
+    '</a></li>';
   }
   el.innerHTML = html;
-  for (const tab of el.querySelectorAll(".tab")) {
+  el.querySelectorAll(".nav-link").forEach((tab) => {
     tab.addEventListener("click", (e) => {
-      if (e.target.classList.contains("close")) { closeTab(tab.dataset.path, e); return; }
+      const closeEl = e.target.closest("[data-close]");
+      if (closeEl) { e.preventDefault(); closeTab(closeEl.dataset.close, e); return; }
+      e.preventDefault();
       state.activeTab = tab.dataset.path;
       renderTabs(); activateTab(state.activeTab); renderRight(); renderSidebar();
     });
-  }
+  });
 }
 
 
@@ -452,6 +457,10 @@ function renderRight() {
     renderAIPanel(body);
     return;
   }
+  if (state.rightTab === "library") {
+    renderLibraryPanel(body);
+    return;
+  }
   // inspector
   if (state.selectedCap) {
     renderCapInspector(body);
@@ -588,32 +597,129 @@ async function refreshCaps() {
   renderSidebar();
 }
 
+// ===== library panel (right sidebar) =====
+let libDebounce = null;
+let libResults = [];
+
+async function renderLibraryPanel(body) {
+  body.innerHTML =
+    '<div class="lib-panel">' +
+      '<input id="libq" class="form-control form-control-sm" placeholder="Search library" autocomplete="off" spellcheck="false">' +
+      '<select id="libLang" class="form-select form-select-sm mt-2">' +
+        '<option value="">All languages</option>' +
+      '</select>' +
+      '<div class="lib-panel-count small text-muted mt-2" id="libCount"></div>' +
+      '<div class="lib-panel-list mt-2" id="libList"></div>' +
+    '</div>';
+  const q = $("libq");
+  q.addEventListener("input", () => {
+    clearTimeout(libDebounce);
+    libDebounce = setTimeout(() => loadLibPanel(q.value), 120);
+  });
+  $("libLang").addEventListener("change", () => renderLibList());
+  await loadLibPanel("");
+}
+
+async function loadLibPanel(q) {
+  const data = await api("/api/library/search?q=" + encodeURIComponent(q));
+  libResults = data.results;
+  const langs = Array.from(new Set(libResults.map((r) => r.language))).sort();
+  const sel = $("libLang");
+  const cur = sel ? sel.value : "";
+  if (sel) {
+    sel.innerHTML = '<option value="">All languages (' + libResults.length + ')</option>' +
+      langs.map((l) => '<option value="' + l + '">' + l + ' (' + libResults.filter((r) => r.language === l).length + ')</option>').join("");
+    sel.value = cur;
+  }
+  renderLibList();
+}
+
+function renderLibList() {
+  const sel = $("libLang");
+  const langFilter = sel ? sel.value : "";
+  const list = $("libList");
+  if (!list) return;
+  const filtered = langFilter ? libResults.filter((r) => r.language === langFilter) : libResults;
+  const countEl = $("libCount");
+  if (countEl) countEl.textContent = filtered.length + " result" + (filtered.length === 1 ? "" : "s") + (langFilter ? " · " + langFilter : "");
+  if (!filtered.length) {
+    list.innerHTML = '<div class="text-center text-muted small p-4">no matches</div>';
+    return;
+  }
+  list.innerHTML = filtered.map((r) =>
+    '<div class="lib-panel-row" draggable="true" data-name="' + r.name + '" data-lang="' + r.language + '">' +
+      '<div class="lib-panel-name">' + r.name + '</div>' +
+      '<div class="lib-panel-meta">' +
+        '<span class="badge-trust badge-' + trustClass(r.trust) + '">' + r.trust + '</span>' +
+        '<span>' + r.language + '</span>' +
+        '<span>' + r.risk + '</span>' +
+      '</div>' +
+    '</div>'
+  ).join("");
+  list.querySelectorAll(".lib-panel-row").forEach((el) => {
+    el.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", el.dataset.name);
+      e.dataTransfer.effectAllowed = "copy";
+      el.classList.add("dragging");
+    });
+    el.addEventListener("dragend", () => {
+      el.classList.remove("dragging");
+      document.querySelectorAll(".tree-row.drop-target").forEach((r) => r.classList.remove("drop-target"));
+    });
+    el.addEventListener("click", () => openFileFromLibrary(el.dataset.name));
+  });
+}
+
+async function openFileFromLibrary(name) {
+  const data = await api("/api/library/" + encodeURIComponent(name));
+  pushOutput("preview " + name + " (" + data.manifest.language + ", " + data.manifest.entrypoint + ")");
+  renderBottom();
+}
+
+function trustClass(t) {
+  return ["community", "professional", "verified", "restricted"].includes(t) ? t : "community";
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 // ===== wiring =====
 function wireUI() {
-  document.querySelectorAll(".activity .icon[data-view]").forEach((el) => {
+  document.querySelectorAll(".rail-btn[data-view]").forEach((el) => {
     el.addEventListener("click", () => {
-      document.querySelectorAll(".activity .icon").forEach((x) => x.classList.remove("active"));
+      document.querySelectorAll(".rail-btn").forEach((x) => x.classList.remove("active"));
       el.classList.add("active");
       state.view = el.dataset.view;
-      $("sidebar").classList.remove("hidden");
+      const sidebar = $("sidebar");
+      if (sidebar) sidebar.classList.remove("hidden");
       renderSidebar();
     });
   });
-  $("sidebarToggle").addEventListener("click", () => $("sidebar").classList.add("hidden"));
-  $("btnToggleRight").addEventListener("click", () => $("right").classList.toggle("hidden"));
-  document.querySelectorAll(".right-tabs .rt").forEach((el) => {
+  const sbToggle = $("sidebarToggle");
+  if (sbToggle) sbToggle.addEventListener("click", () => $("sidebar").classList.add("hidden"));
+  const rightToggle = $("btnToggleRight");
+  if (rightToggle) rightToggle.addEventListener("click", () => $("right").classList.toggle("hidden"));
+  document.querySelectorAll(".right-tabs .nav-link").forEach((el) => {
     el.addEventListener("click", () => {
-      document.querySelectorAll(".right-tabs .rt").forEach((x) => x.classList.remove("active"));
+      document.querySelectorAll(".right-tabs .nav-link").forEach((x) => x.classList.remove("active"));
       el.classList.add("active");
       state.rightTab = el.dataset.rtab;
       renderRight();
     });
   });
-  $("btnPalette").addEventListener("click", openPalette);
+  const btnPal = $("btnPalette");
+  if (btnPal) btnPal.addEventListener("click", openPalette);
+  const libBtn = $("btnLibrary");
+  if (libBtn) libBtn.addEventListener("click", () => {
+    state.rightTab = "library";
+    document.querySelectorAll(".right-tabs .nav-link").forEach((x) => {
+      x.classList.toggle("active", x.dataset.rtab === "library");
+    });
+    const right = $("right");
+    if (right) right.classList.remove("hidden");
+    renderRight();
+  });
 
   // palette
   $("paletteWrap").addEventListener("click", (e) => { if (e.target === $("paletteWrap")) closePalette(); });
@@ -642,9 +748,9 @@ function wireUI() {
   });
 
   // bottom panel
-  document.querySelectorAll(".bottom-tabs .bt").forEach((el) => {
+  document.querySelectorAll(".bottom-tabs .nav-link").forEach((el) => {
     el.addEventListener("click", () => {
-      document.querySelectorAll(".bottom-tabs .bt").forEach((x) => x.classList.remove("active"));
+      document.querySelectorAll(".bottom-tabs .nav-link").forEach((x) => x.classList.remove("active"));
       el.classList.add("active");
       state.bottomTab = el.dataset.btab;
       renderBottom();
@@ -653,15 +759,15 @@ function wireUI() {
   const btnBottom = $("btnToggleBottom");
   if (btnBottom) btnBottom.addEventListener("click", () => {
     state.bottomOpen = !state.bottomOpen;
-    $("bottom").classList.toggle("open", state.bottomOpen);
-    $("shell").classList.toggle("with-bottom", state.bottomOpen);
+    const shell = document.querySelector(".ide-shell");
+    if (shell) shell.classList.toggle("with-bottom", state.bottomOpen);
     setTimeout(() => { if (state.editor) state.editor.layout(); }, 60);
   });
   const bottomClose = $("bottomClose");
   if (bottomClose) bottomClose.addEventListener("click", () => {
     state.bottomOpen = false;
-    $("bottom").classList.remove("open");
-    $("shell").classList.remove("with-bottom");
+    const shell = document.querySelector(".ide-shell");
+    if (shell) shell.classList.remove("with-bottom");
     setTimeout(() => { if (state.editor) state.editor.layout(); }, 60);
   });
 
@@ -680,6 +786,33 @@ function wireSidebar() {
       } else {
         openFile(row.dataset.path);
       }
+    });
+    row.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      row.classList.add("drop-target");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drop-target"));
+    row.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      row.classList.remove("drop-target");
+      const name = e.dataTransfer.getData("text/plain");
+      if (!name) return;
+      const isDir = !!row.dataset.dir;
+      const targetPath = isDir ? row.dataset.path : row.dataset.path.split("/").slice(0, -1).join("/");
+      try {
+        const r = await api("/api/library/export", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name, targetPath })
+        });
+        if (r.ok) {
+          pushOutput("exported " + name + " → " + r.path);
+          await loadTree();
+          renderSidebar();
+          renderBottom();
+        }
+      } catch (err) { alert("export failed: " + err.message); }
     });
   });
   $("sidebarBody").querySelectorAll(".cap-row[data-wf]").forEach((row) => {

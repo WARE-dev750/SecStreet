@@ -2,41 +2,33 @@
    Every page loads this. Only one file to change to swap themes. */
 
 :root{
-  /* cappuccino palette (default) */
-  --ink:#171310;
-  --bg:#1d1815;
-  --bg-2:#241e1a;
-  --surf:#2c2521;
-  --elev:#372e28;
-  --hair:#3a302a;
-  --hair-soft:#2b2420;
-  --cream:#ede4d6;
-  --cream-2:#b7a89a;
-  --cream-3:#867668;
-  --cream-4:#5d5145;
-  --gold:#d4b171;
-  --gold-hi:#e2c384;
-  --gold-lo:#9a7f4e;
-  --ok:#9dbf6a;
-  --warn:#d9a95c;
-  --err:#d98070;
-  --info:#93b0c4;
-
-  --fs-micro:10.5px;
-  --fs-tiny:11.5px;
-  --fs-base:12.5px;
-  --fs-body:13px;
-  --fs-title:14px;
-
+  /* light theme — clean, minimal, high-contrast text */
+  --ink:#ffffff;
+  --bg:#f7f7f8;
+  --bg-2:#f0f0f2;
+  --surf:#e8e8eb;
+  --elev:#dcdce0;
+  --hair:#e2e2e6;
+  --hair-soft:#ececed;
+  --cream:#1f1f23;
+  --cream-2:#4a4a52;
+  --cream-3:#787880;
+  --cream-4:#a8a8b0;
+  --gold:#1a73e8;
+  --gold-hi:#3b86e8;
+  --gold-lo:#1557b0;
+  --ok:#1e8e3e;
+  --warn:#c77700;
+  --err:#d93025;
+  --info:#1a73e8;
+  --fs-micro:10.5px; --fs-tiny:11.5px; --fs-base:12.5px; --fs-body:13px; --fs-title:14px; --fs-h:16px;
   --s-1:4px; --s-2:6px; --s-3:10px; --s-4:14px; --s-5:20px; --s-6:28px;
-
   --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
   --sans:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",system-ui,sans-serif;
-
-  --shadow-1:0 1px 2px rgba(0,0,0,.35);
-  --shadow-2:0 4px 14px rgba(0,0,0,.4);
-  --shadow-3:0 20px 60px rgba(0,0,0,.55), 0 1px 2px rgba(0,0,0,.5);
-  --glow-gold:0 0 0 1px rgba(212,177,113,.28), 0 0 0 4px rgba(212,177,113,.06);
+  --shadow-1:0 1px 2px rgba(0,0,0,.05);
+  --shadow-2:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.05);
+  --shadow-3:0 20px 60px rgba(0,0,0,.15),0 1px 2px rgba(0,0,0,.1);
+  --glow-gold:0 0 0 1px rgba(26,115,232,.4),0 0 0 4px rgba(26,115,232,.1);
 }
 
 /* Alt theme — uncomment to switch to VS Code defaults */

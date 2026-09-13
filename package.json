@@ -14,19 +14,20 @@
     "cli": "tsx packages/sdk/src/cli/cli.ts"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
-    "tsx": "^4.19.2",
-    "vitest": "^2.1.8",
-    "@types/node": "^22.10.2",
+    "@secstreet/ai": "workspace:*",
+    "@secstreet/analyzer": "workspace:*",
+    "@secstreet/app-web": "workspace:*",
     "@secstreet/capability": "workspace:*",
     "@secstreet/contracts": "workspace:*",
-    "@secstreet/runtime": "workspace:*",
-    "@secstreet/workflow": "workspace:*",
     "@secstreet/project": "workspace:*",
+    "@secstreet/runtime": "workspace:*",
     "@secstreet/security": "workspace:*",
-    "@secstreet/ai": "workspace:*",
     "@secstreet/service-registry": "workspace:*",
-    "@secstreet/app-web": "workspace:*",
-    "@secstreet/analyzer": "workspace:*"
+    "@secstreet/workflow": "workspace:*",
+    "@types/node": "^22.10.2",
+    "playwright": "^1.63.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
   }
 }

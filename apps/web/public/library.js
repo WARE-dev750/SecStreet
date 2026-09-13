@@ -37,8 +37,10 @@
         '<div class="lname">' + r.name + '</div>' +
         '<div class="ldesc">' + escapeHtml(r.description) + '</div>' +
         '<div class="lmeta">' +
-          '<span class="badge ' + trustClass(r.trust) + '">' + r.trust + '</span>' +
+          '<span class="badge-trust badge-' + trustClass(r.trust) + '">' + r.trust + '</span>' +
+          '<span class="lm-dot">·</span>' +
           '<span>' + r.risk + '</span>' +
+          '<span class="lm-dot">·</span>' +
           '<span>' + r.language + '</span>' +
           (r.score ? '<span class="lscore">' + r.score + '</span>' : '') +
         '</div>' +
@@ -60,28 +62,30 @@
     const perms = (m.permissions || []).join(", ") || "none";
     const tags = (m.tags || []).join(", ") || "—";
     $("detail").innerHTML =
-      '<div class="dcrumb"><a href="/">SecStreet</a> / library / ' + m.name + '</div>' +
-      '<div class="lib-title-row">' +
-        '<h1 style="margin:0">' + m.name + ' <span style="color:var(--cream-3);font-size:13px;font-weight:400">@' + m.version + '</span></h1>' +
-        '<button id="installBtn" class="btn-primary" style="margin-left:auto">Install to project</button>' +
-      '</div>' +
-      '<div class="lib-install-msg" id="installMsg"></div>' +
-      '<div class="ddesc">' + escapeHtml(m.description) + '</div>' +
-      '<div class="kv">' +
-        '<span class="k">trust</span><span class="v"><span class="badge ' + trustClass(m.trust) + '">' + m.trust + '</span></span>' +
-        '<span class="k">risk</span><span class="v">' + m.risk + '</span>' +
-        '<span class="k">language</span><span class="v">' + m.language + '</span>' +
-        '<span class="k">permissions</span><span class="v">' + perms + '</span>' +
-        '<span class="k">tags</span><span class="v">' + tags + '</span>' +
-        '<span class="k">maintainer</span><span class="v">' + m.maintainer + '</span>' +
-        '<span class="k">license</span><span class="v">' + (m.provenance && m.provenance.license ? m.provenance.license : "unknown") + '</span>' +
-      '</div>' +
-      '<div class="section">Input schema</div>' +
-      '<pre>' + escapeHtml(JSON.stringify(data.inputSchema, null, 2)) + '</pre>' +
-      '<div class="section">Output schema</div>' +
-      '<pre>' + escapeHtml(JSON.stringify(data.outputSchema, null, 2)) + '</pre>' +
-      '<div class="section">Entrypoint · ' + m.entrypoint + '</div>' +
-      '<div class="lib-code" id="code"></div>';
+      '<div class="lib-detail">' +
+        '<div class="dcrumb"><a href="/">SecStreet</a> <span class="mx-1">/</span> library <span class="mx-1">/</span> ' + m.name + '</div>' +
+        '<div class="lib-title-row">' +
+          '<h1 class="mb-0">' + m.name + ' <span class="text-muted fs-6 fw-normal">@' + m.version + '</span></h1>' +
+          '<button id="installBtn" class="btn btn-primary btn-sm ms-auto"><i class="bi bi-download me-1"></i>Install to project</button>' +
+        '</div>' +
+        '<div class="lib-install-msg" id="installMsg"></div>' +
+        '<div class="ddesc">' + escapeHtml(m.description) + '</div>' +
+        '<div class="kv">' +
+          '<span class="k">trust</span><span class="v"><span class="badge-trust badge-' + trustClass(m.trust) + '">' + m.trust + '</span></span>' +
+          '<span class="k">risk</span><span class="v">' + m.risk + '</span>' +
+          '<span class="k">language</span><span class="v">' + m.language + '</span>' +
+          '<span class="k">permissions</span><span class="v">' + perms + '</span>' +
+          '<span class="k">tags</span><span class="v">' + tags + '</span>' +
+          '<span class="k">maintainer</span><span class="v">' + m.maintainer + '</span>' +
+          '<span class="k">license</span><span class="v">' + (m.provenance && m.provenance.license ? m.provenance.license : "unknown") + '</span>' +
+        '</div>' +
+        '<div class="section">Input schema</div>' +
+        '<pre>' + escapeHtml(JSON.stringify(data.inputSchema, null, 2)) + '</pre>' +
+        '<div class="section">Output schema</div>' +
+        '<pre>' + escapeHtml(JSON.stringify(data.outputSchema, null, 2)) + '</pre>' +
+        '<div class="section">Entrypoint · ' + m.entrypoint + '</div>' +
+        '<div class="lib-code" id="code"></div>' +
+      '</div>';
 
     $("installBtn").addEventListener("click", async () => {
       const btn = $("installBtn");
@@ -118,7 +122,7 @@
     editor = monaco.editor.create($("code"), {
       value: data.entrypointCode || "(no code)",
       language: "javascript",
-      theme: "secstreet",
+      theme: "secstreet-light",
       fontSize: 12.5,
       fontFamily: "ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, monospace",
       minimap: { enabled: false },
@@ -132,24 +136,24 @@
 
   require.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs" } });
   require(["vs/editor/editor.main"], () => {
-    monaco.editor.defineTheme("secstreet", {
-      base: "vs-dark",
+    monaco.editor.defineTheme("secstreet-light", {
+      base: "vs",
       inherit: true,
       rules: [
-        { token: "comment", foreground: "7a6f64", fontStyle: "italic" },
-        { token: "string", foreground: "c9a961" },
-        { token: "keyword", foreground: "cf7a68" },
-        { token: "number", foreground: "8ba5b8" },
-        { token: "type", foreground: "8aad5c" }
+        { token: "comment", foreground: "80868b", fontStyle: "italic" },
+        { token: "string", foreground: "188038" },
+        { token: "keyword", foreground: "1967d2" },
+        { token: "number", foreground: "9334e6" },
+        { token: "type", foreground: "b06000" }
       ],
       colors: {
-        "editor.background": "#171310",
-        "editor.foreground": "#ede4d6",
-        "editorLineNumber.foreground": "#4a3f38",
-        "editorLineNumber.activeForeground": "#d4b171",
-        "editor.selectionBackground": "#3a302a",
-        "editor.lineHighlightBackground": "#1d1815",
-        "editorCursor.foreground": "#d4b171"
+        "editor.background": "#ffffff",
+        "editor.foreground": "#1f1f23",
+        "editorLineNumber.foreground": "#dadce0",
+        "editorLineNumber.activeForeground": "#1a73e8",
+        "editor.selectionBackground": "#e8f0fe",
+        "editor.lineHighlightBackground": "#f8f9fa",
+        "editorCursor.foreground": "#1a73e8"
       }
     });
     load("");
