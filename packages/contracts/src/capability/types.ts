@@ -37,6 +37,7 @@ export interface CapabilityManifest {
   provenance: CapabilityProvenance;
   maintainer: string;
   execution?: CapabilityExecution;
+  tags?: string[];
 }
 
 export interface CapabilityRunResult {

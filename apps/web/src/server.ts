@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
 import { readFile, readdir, stat, writeFile, rm, mkdir } from "node:fs/promises";
 import { join, resolve, normalize } from "node:path";
-import { Project, type AuditEntry } from "@secstreet/project";
+import { Project, searchLibraryRanked, listLibrary, type AuditEntry } from "@secstreet/project";
 import { runCapability } from "@secstreet/runtime";
 import { runWorkflow } from "@secstreet/workflow";
 import { RegistryClient } from "@secstreet/service-registry";
@@ -11,6 +11,7 @@ import { hashJson, loadRegistry } from "@secstreet/capability";
 
 export interface WebServerOptions {
   projectRoot: string;
+  libraryRoot?: string;
   port?: number;
   host?: string;
 }
@@ -127,6 +128,9 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
 
 export async function startWebServer(opts: WebServerOptions): Promise<WebServerHandle> {
   const project = await Project.open(opts.projectRoot);
+  const libraryRoot = opts.libraryRoot
+    ?? process.env.SECSTREET_LIBRARY
+    ?? join(import.meta.dirname, "..", "..", "..", "capabilities", "official");
   const publicDir = join(import.meta.dirname, "..", "public");
   const port = opts.port ?? 5050;
   const host = opts.host ?? "127.0.0.1";
@@ -300,6 +304,64 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
           rationale: generated.rationale,
           provider: generated.provider,
           model: generated.model,
+        });
+      }
+      if (p === "/api/library") {
+        const caps = await listLibrary({ label: "official", path: libraryRoot });
+        return send(res, 200, {
+          root: libraryRoot,
+          count: caps.length,
+          capabilities: caps.map((c) => ({
+            name: c.manifest.name,
+            version: c.manifest.version,
+            description: c.manifest.description,
+            language: c.manifest.language,
+            trust: c.manifest.trust,
+            risk: c.manifest.risk,
+            permissions: c.manifest.permissions,
+            tags: c.manifest.tags ?? [],
+          })),
+        });
+      }
+      if (p === "/api/library/search") {
+        const q = url.searchParams.get("q") ?? "";
+        const results = await searchLibraryRanked({ label: "official", path: libraryRoot }, q);
+        return send(res, 200, {
+          query: q,
+          count: results.length,
+          results: results.map((r) => ({
+            name: r.manifest.name,
+            version: r.manifest.version,
+            description: r.manifest.description,
+            language: r.manifest.language,
+            trust: r.manifest.trust,
+            risk: r.manifest.risk,
+            permissions: r.manifest.permissions,
+            tags: r.manifest.tags ?? [],
+            score: r.score,
+            matchedOn: r.matchedOn,
+          })),
+        });
+      }
+      const libCapMatch = p.match(/^\/api\/library\/([a-z0-9][a-z0-9-]*)$/);
+      if (libCapMatch) {
+        const name = libCapMatch[1];
+        const caps = await listLibrary({ label: "official", path: libraryRoot });
+        const c = caps.find((x) => x.manifest.name === name);
+        if (!c) return send(res, 404, { error: "not in library: " + name });
+        let entrypointCode = "";
+        try {
+          entrypointCode = await readFile(join(c.dir, c.manifest.entrypoint), "utf8");
+        } catch { /* leave empty */ }
+        let inputSchema: unknown = null;
+        try { inputSchema = JSON.parse(await readFile(join(c.dir, c.manifest.inputSchema), "utf8")); } catch { /* leave null */ }
+        let outputSchema: unknown = null;
+        try { outputSchema = JSON.parse(await readFile(join(c.dir, c.manifest.outputSchema), "utf8")); } catch { /* leave null */ }
+        return send(res, 200, {
+          manifest: c.manifest,
+          entrypointCode,
+          inputSchema,
+          outputSchema,
         });
       }
       return send(res, 404, { error: "not found: " + p });
