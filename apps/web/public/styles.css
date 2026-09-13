@@ -60,6 +60,7 @@ kbd { background: #f1f3f4; border: 1px solid #dadce0; border-bottom-width: 2px; 
 /* main */
 .main { display: flex; flex-direction: column; background: #fff; overflow: hidden; min-height: 0; }
 .tabs-bar { flex: 0 0 auto; border-bottom: 1px solid #e2e2e6; background: #f8f9fa; padding: 0 6px; flex-wrap: nowrap; overflow-x: auto; }
+.tabs-bar:empty { display: none; }
 .tabs-bar .nav-item { flex-shrink: 0; }
 .tabs-bar .nav-link { border: none; background: transparent; color: #5f6368; font-size: 12px; padding: 8px 12px; border-radius: 0; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 8px; }
 .tabs-bar .nav-link:hover { color: #202124; background: #f1f3f4; }

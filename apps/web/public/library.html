@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/library.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/editor/editor.main.css">
 </head><body>
-<nav class="navbar navbar-expand navbar-light bg-white border-bottom sticky-top">
+<nav class="navbar navbar-expand navbar-light bg-white border-bottom">
   <div class="container-fluid">
     <a class="navbar-brand fw-semibold" href="/">
       <span class="text-primary">■</span> SECSTREET <span class="text-muted fw-normal">/ library</span>
@@ -21,23 +21,22 @@
   </div>
 </nav>
 
-<div class="container-fluid p-0">
-  <div class="row g-0" style="height:calc(100vh - 57px)">
-    <div class="col-md-5 col-lg-4 col-xl-3 border-end bg-white d-flex flex-column">
-      <div class="p-3 border-bottom bg-white">
-        <div class="input-group input-group-sm">
-          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-          <input id="q" class="form-control border-start-0" placeholder="Search the capability library" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="text-muted small mt-2" id="count"></div>
+<div class="lib-shell">
+  <div class="lib-left">
+    <div class="lib-header">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input id="q" class="form-control border-start-0" placeholder="Search the capability library" autocomplete="off" spellcheck="false">
       </div>
-      <div class="flex-grow-1 overflow-auto" id="list">
-        <div class="p-5 text-center text-muted small">Loading…</div>
-      </div>
+      <div class="text-muted small mt-2" id="count"></div>
     </div>
-
-    <div class="col-md-7 col-lg-8 col-xl-9 bg-body-tertiary overflow-auto" id="detail">
-      <div class="p-5 text-center text-muted">
+    <div class="lib-list" id="list">
+      <div class="lib-empty">Loading…</div>
+    </div>
+  </div>
+  <div class="lib-right">
+    <div class="lib-detail" id="detail">
+      <div class="lib-empty">
         <i class="bi bi-box-seam fs-1 d-block mb-3 opacity-25"></i>
         Pick a capability to inspect it.
       </div>
