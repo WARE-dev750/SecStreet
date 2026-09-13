@@ -533,25 +533,28 @@ function renderFileInspector(body) {
 function renderAIPanel(body) {
   const caps = state.caps;
   if (!caps.length) {
-    body.innerHTML = '<div style="color:var(--cream-3);font-size:12px;text-align:center;padding:20px 0">No capabilities installed.</div>';
+    body.innerHTML = '<div class="text-muted small text-center p-4">No capabilities installed.</div>';
     return;
   }
   const options = caps.map((c) => '<option value="' + c.name + '">' + c.name + ' @' + c.version + '</option>').join("");
   body.innerHTML =
-    '<h3>AI adapter</h3>' +
-    '<div class="desc">Generate a bridge capability that transforms a producer output into a consumer input.</div>' +
-    '<div class="ai-form">' +
-      '<label>Producer</label><select id="aiProducer">' + options + '</select>' +
-      '<label>Consumer</label><select id="aiConsumer">' + options + '</select>' +
-      '<label>Adapter name (optional)</label><input id="aiName" placeholder="auto" spellcheck="false" />' +
-      '<button id="aiGenerate">Generate adapter</button>' +
+    '<h3 class="mb-1">AI adapter</h3>' +
+    '<div class="text-muted small mb-3">Generate a bridge capability that transforms a producer output into a consumer input.</div>' +
+    '<div class="mb-3">' +
+      '<label class="form-label small text-uppercase text-muted fw-semibold mb-1" style="letter-spacing:.06em;font-size:10.5px">Producer</label>' +
+      '<select id="aiProducer" class="form-select form-select-sm mb-3">' + options + '</select>' +
+      '<label class="form-label small text-uppercase text-muted fw-semibold mb-1" style="letter-spacing:.06em;font-size:10.5px">Consumer</label>' +
+      '<select id="aiConsumer" class="form-select form-select-sm mb-3">' + options + '</select>' +
+      '<label class="form-label small text-uppercase text-muted fw-semibold mb-1" style="letter-spacing:.06em;font-size:10.5px">Adapter name (optional)</label>' +
+      '<input id="aiName" class="form-control form-control-sm mb-3" placeholder="auto" spellcheck="false">' +
+      '<button id="aiGenerate" class="btn btn-primary btn-sm w-100"><i class="bi bi-stars me-1"></i>Generate adapter</button>' +
     '</div>' +
     '<div id="aiResult"></div>';
   $("aiGenerate").addEventListener("click", async () => {
     const producer = $("aiProducer").value;
     const consumer = $("aiConsumer").value;
     const adapterName = $("aiName").value.trim() || undefined;
-    $("aiResult").innerHTML = '<div class="section">Generating…</div>';
+    $("aiResult").innerHTML = '<div class="text-muted small">Generating…</div>';
     try {
       const r = await api("/api/ai/adapter", {
         method: "POST",
@@ -559,27 +562,26 @@ function renderAIPanel(body) {
         body: JSON.stringify({ producer, consumer, adapterName }),
       });
       if (r.alreadyCompatible) {
-        $("aiResult").innerHTML =
-          '<div class="section">No adapter needed</div>' +
-          '<pre>' + escapeHtml(r.reason) + '</pre>';
+        $("aiResult").innerHTML = '<div class="alert alert-info small mb-0 mt-3">No adapter needed — ' + escapeHtml(r.reason) + '</div>';
         return;
       }
       $("aiResult").innerHTML =
-        '<div class="section">Adapter generated</div>' +
-        '<div class="kv">' +
-          '<span class="k">name</span><span class="v"><code>' + r.adapterName + '</code></span>' +
-          '<span class="k">provider</span><span class="v">' + r.provider + ' / ' + r.model + '</span>' +
-        '</div>' +
-        '<div class="section">Rationale</div>' +
-        '<pre>' + escapeHtml(r.rationale) + '</pre>';
+        '<div class="border-top pt-3 mt-3">' +
+          '<div class="small text-uppercase text-muted fw-semibold mb-2" style="letter-spacing:.08em;font-size:10px">Adapter generated</div>' +
+          '<div class="mb-2"><code class="small">' + r.adapterName + '</code></div>' +
+          '<div class="text-muted small mb-2">' + r.provider + ' / ' + r.model + '</div>' +
+          '<div class="small text-uppercase text-muted fw-semibold mb-1 mt-3" style="letter-spacing:.08em;font-size:10px">Rationale</div>' +
+          '<div class="small" style="color:#3c4043">' + escapeHtml(r.rationale) + '</div>' +
+        '</div>';
       await refreshCaps();
       pushOutput("ai generated " + r.adapterName + " (" + producer + " -> " + consumer + ")");
       renderBottom();
     } catch (err) {
-      $("aiResult").innerHTML = '<div class="section">Error</div><pre class="err">' + escapeHtml(err.message) + '</pre>';
+      $("aiResult").innerHTML = '<div class="alert alert-danger small mb-0 mt-3">' + escapeHtml(err.message) + '</div>';
     }
   });
 }
+
 
 async function refreshCaps() {
   const p = await api("/api/project");
