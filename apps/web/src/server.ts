@@ -359,27 +359,6 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
           })),
         });
       }
-      const libCapMatch = p.match(/^\/api\/library\/([a-z0-9][a-z0-9-]*)$/);
-      if (libCapMatch) {
-        const name = libCapMatch[1];
-        const caps = await listLibrary({ label: "official", path: libraryRoot });
-        const c = caps.find((x) => x.manifest.name === name);
-        if (!c) return send(res, 404, { error: "not in library: " + name });
-        let entrypointCode = "";
-        try {
-          entrypointCode = await readFile(join(c.dir, c.manifest.entrypoint), "utf8");
-        } catch { /* leave empty */ }
-        let inputSchema: unknown = null;
-        try { inputSchema = JSON.parse(await readFile(join(c.dir, c.manifest.inputSchema), "utf8")); } catch { /* leave null */ }
-        let outputSchema: unknown = null;
-        try { outputSchema = JSON.parse(await readFile(join(c.dir, c.manifest.outputSchema), "utf8")); } catch { /* leave null */ }
-        return send(res, 200, {
-          manifest: c.manifest,
-          entrypointCode,
-          inputSchema,
-          outputSchema,
-        });
-      }
       if (p === "/api/library/install" && req.method === "POST") {
         const body = await readJson(req) as { name?: string };
         if (!body.name) return send(res, 400, { ok: false, error: "name required" });
@@ -411,6 +390,27 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         await writeFile(outAbs, content, "utf8");
         const rel = relative(project.root, outAbs).split(/[\\/]/).join("/");
         return send(res, 200, { ok: true, path: rel });
+      }
+      const libCapMatch = p.match(/^\/api\/library\/([a-z0-9][a-z0-9-]*)$/);
+      if (libCapMatch) {
+        const name = libCapMatch[1];
+        const caps = await listLibrary({ label: "official", path: libraryRoot });
+        const c = caps.find((x) => x.manifest.name === name);
+        if (!c) return send(res, 404, { error: "not in library: " + name });
+        let entrypointCode = "";
+        try {
+          entrypointCode = await readFile(join(c.dir, c.manifest.entrypoint), "utf8");
+        } catch { /* leave empty */ }
+        let inputSchema: unknown = null;
+        try { inputSchema = JSON.parse(await readFile(join(c.dir, c.manifest.inputSchema), "utf8")); } catch { /* leave null */ }
+        let outputSchema: unknown = null;
+        try { outputSchema = JSON.parse(await readFile(join(c.dir, c.manifest.outputSchema), "utf8")); } catch { /* leave null */ }
+        return send(res, 200, {
+          manifest: c.manifest,
+          entrypointCode,
+          inputSchema,
+          outputSchema,
+        });
       }
       return send(res, 404, { error: "not found: " + p });
     } catch (err) {
