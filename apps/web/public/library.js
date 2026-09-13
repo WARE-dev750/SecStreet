@@ -42,7 +42,7 @@
           '<span>' + r.risk + '</span>' +
           '<span class="lm-dot">·</span>' +
           '<span>' + r.language + '</span>' +
-          (r.score ? '<span class="lscore">' + r.score + '</span>' : '') +
+          (r.score && r.score > 1 ? '<span class="lscore">' + r.score + '</span>' : '') +
         '</div>' +
       '</div>'
     ).join("");
