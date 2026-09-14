@@ -34,5 +34,6 @@
     "dependencies",
     "elf",
     "linux"
-  ]
+  ],
+  "category": "neutral"
 }

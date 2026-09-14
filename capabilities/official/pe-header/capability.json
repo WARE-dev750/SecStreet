@@ -36,5 +36,6 @@
     "header",
     "reverse-engineering",
     "malware"
-  ]
+  ],
+  "category": "offensive"
 }

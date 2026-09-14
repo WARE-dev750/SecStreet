@@ -8,6 +8,8 @@
   let editor = null;
   let current = null;
   let debounce = null;
+  let categoryFilter = "all";
+  let allResults = [];
 
   async function api(path, opts) {
     const r = await fetch(path, opts);
@@ -27,13 +29,17 @@
 
   async function load(q) {
     const data = await api("/api/library/search?q=" + encodeURIComponent(q));
-    $("count").textContent = data.count + " result" + (data.count === 1 ? "" : "s");
-    if (!data.results.length) {
+    allResults = data.results;
+    const filtered = categoryFilter === "all"
+      ? allResults
+      : allResults.filter((r) => (r.category || "neutral") === categoryFilter);
+    $("count").textContent = filtered.length + " result" + (filtered.length === 1 ? "" : "s");
+    if (!filtered.length) {
       $("list").innerHTML = '<div class="lib-empty">no matches</div>';
       return;
     }
-    $("list").innerHTML = data.results.map((r) =>
-      '<div class="lib-row" data-name="' + r.name + '">' +
+    $("list").innerHTML = filtered.map((r) =>
+      '<div class="lib-row category-' + (r.category || "neutral") + '" data-name="' + r.name + '" data-category="' + (r.category || "neutral") + '">' +
         '<div class="lname">' + r.name + '</div>' +
         '<div class="ldesc">' + escapeHtml(r.description) + '</div>' +
         '<div class="lmeta">' +
@@ -49,7 +55,7 @@
     for (const el of document.querySelectorAll(".lib-row")) {
       el.addEventListener("click", () => selectCap(el.dataset.name));
     }
-    if (current && !data.results.find((r) => r.name === current)) current = null;
+    if (current && !filtered.find((r) => r.name === current)) current = null;
   }
 
   async function selectCap(name) {
@@ -134,6 +140,16 @@
     });
   }
 
+  function wireChips() {
+    for (const btn of document.querySelectorAll(".chip[data-cat]")) {
+      btn.addEventListener("click", () => {
+        for (const b of document.querySelectorAll(".chip[data-cat]")) b.classList.toggle("active", b === btn);
+        categoryFilter = btn.dataset.cat;
+        load($("q").value);
+      });
+    }
+  }
+
   require.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs" } });
   require(["vs/editor/editor.main"], () => {
     monaco.editor.defineTheme("secstreet-light", {
@@ -156,6 +172,7 @@
         "editorCursor.foreground": "#1a73e8"
       }
     });
+    wireChips();
     load("");
   });
 

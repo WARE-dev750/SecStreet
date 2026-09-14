@@ -35,5 +35,6 @@
     "binary",
     "reverse-engineering",
     "linux"
-  ]
+  ],
+  "category": "offensive"
 }

@@ -35,5 +35,6 @@
     "x509",
     "crypto",
     "tls"
-  ]
+  ],
+  "category": "defensive"
 }

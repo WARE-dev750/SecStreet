@@ -27,5 +27,6 @@
     "log",
     "aggregation",
     "defensive"
-  ]
+  ],
+  "category": "defensive"
 }

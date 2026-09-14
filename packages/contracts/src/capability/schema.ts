@@ -62,6 +62,11 @@ export function validateManifest(
     errors.push("trust must be one of: " + TRUSTS.join(", "));
   }
   if (typeof m.maintainer !== "string" || !m.maintainer) errors.push("maintainer must be non-empty");
+  if (m.category !== undefined) {
+    if (m.category !== "defensive" && m.category !== "offensive" && m.category !== "neutral") {
+      errors.push("category must be defensive, offensive, or neutral");
+    }
+  }
   if (m.tags !== undefined) {
     if (!Array.isArray(m.tags) || !m.tags.every((x) => typeof x === "string")) {
       errors.push("tags must be a string[] when present");

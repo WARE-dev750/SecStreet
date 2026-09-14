@@ -5,6 +5,7 @@ export type CapabilityTrust = "community" | "professional" | "verified" | "restr
 export type CapabilityLanguage =
   | "javascript" | "typescript" | "python" | "rust" | "go" | "shell" | "binary";
 export type CapabilityKind = "capability" | "adapter";
+export type CapabilityCategory = "defensive" | "offensive" | "neutral";
 
 export interface CapabilityProvenance {
   sourceRepo: string;
@@ -38,6 +39,7 @@ export interface CapabilityManifest {
   maintainer: string;
   execution?: CapabilityExecution;
   tags?: string[];
+  category?: CapabilityCategory;
 }
 
 export interface CapabilityRunResult {

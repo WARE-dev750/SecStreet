@@ -34,5 +34,6 @@
     "crypto",
     "hash",
     "filesystem"
-  ]
+  ],
+  "category": "neutral"
 }

@@ -28,7 +28,13 @@
         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
         <input id="q" class="form-control border-start-0" placeholder="Search the capability library" autocomplete="off" spellcheck="false">
       </div>
-      <div class="text-muted small mt-2" id="count"></div>
+      <div class="chip-row">
+        <button class="chip active" data-cat="all">All</button>
+        <button class="chip" data-cat="defensive">Defensive</button>
+        <button class="chip" data-cat="offensive">Offensive</button>
+        <button class="chip" data-cat="neutral">Neutral</button>
+      </div>
+      <div class="text-muted small mt-2" id="count" style="padding:0 16px"></div>
     </div>
     <div class="lib-list" id="list">
       <div class="lib-empty">Loading…</div>

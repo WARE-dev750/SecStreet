@@ -1,0 +1,17 @@
+# Real VS Code in the browser, running on the user's own machine.
+# Start with:  docker compose -f docker-compose.code-server.yml up
+# Then open:   http://localhost:8080
+#
+# This gives rename / create / delete / search / git / terminal for free.
+# SecStreet's library lives in the next tab. The IDE is not ours to build.
+services:
+  code-server:
+    image: codercom/code-server:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/home/coder/workspace
+      - ./configs/code-server:/home/coder/.config/code-server
+    environment:
+      - PASSWORD=secstreet
+    restart: unless-stopped

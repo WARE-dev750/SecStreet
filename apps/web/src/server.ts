@@ -182,7 +182,8 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
             version: c.manifest.version,
             description: c.manifest.description,
             trust: c.manifest.trust,
-            risk: c.manifest.risk
+            risk: c.manifest.risk,
+            category: c.manifest.category ?? "neutral"
           }))
         });
       }
@@ -336,6 +337,7 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
             risk: c.manifest.risk,
             permissions: c.manifest.permissions,
             tags: c.manifest.tags ?? [],
+            category: c.manifest.category ?? "neutral",
           })),
         });
       }
@@ -354,6 +356,7 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
             risk: r.manifest.risk,
             permissions: r.manifest.permissions,
             tags: r.manifest.tags ?? [],
+            category: r.manifest.category ?? "neutral",
             score: r.score,
             matchedOn: r.matchedOn,
           })),

@@ -28,5 +28,6 @@
     "network",
     "python",
     "defensive"
-  ]
+  ],
+  "category": "defensive"
 }

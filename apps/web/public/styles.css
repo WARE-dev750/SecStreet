@@ -180,3 +180,12 @@ kbd { background: #f1f3f4; border: 1px solid #dadce0; border-bottom-width: 2px; 
 .lib-panel-meta { display: flex; gap: 8px; font-size: 11px; color: #5f6368; align-items: center; font-family: ui-monospace, monospace; }
 
 .tree-row.drop-target { background: #e8f0fe; outline: 2px dashed #1a73e8; outline-offset: -2px; }
+
+
+/* ---- capability category colour ---- */
+.cap-row.category-defensive { border-left-color: #1a73e8; }
+.cap-row.category-offensive { border-left-color: #d93025; }
+.cap-row.category-neutral   { border-left-color: #9334e6; }
+.lib-panel-row.category-defensive { border-left: 3px solid #1a73e8; }
+.lib-panel-row.category-offensive { border-left: 3px solid #d93025; }
+.lib-panel-row.category-neutral   { border-left: 3px solid #9334e6; }

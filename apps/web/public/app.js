@@ -162,7 +162,7 @@ function renderCapList() {
   let html = '<div class="cap-list">';
   for (const c of state.caps) {
     const active = state.selectedCap === c.name ? " active" : "";
-    html += '<div class="cap-row' + active + '" data-cap="' + c.name + '">';
+    html += '<div class="cap-row category-' + (c.category || "neutral") + active + '" data-cap="' + c.name + '">';
     html += '<span class="name">' + c.name + ' <span style="color:var(--text-3);font-size:10.5px">@' + c.version + '</span></span>';
     html += '<span class="meta"><span class="badge ' + c.trust + '">' + c.trust + '</span> · ' + c.risk + '</span>';
     html += '</div>';
@@ -649,7 +649,7 @@ function renderLibList() {
     return;
   }
   list.innerHTML = filtered.map((r) =>
-    '<div class="lib-panel-row" draggable="true" data-name="' + r.name + '" data-lang="' + r.language + '">' +
+    '<div class="lib-panel-row category-' + (r.category || "neutral") + '" draggable="true" data-name="' + r.name + '" data-lang="' + r.language + '">' +
       '<div class="lib-panel-name">' + r.name + '</div>' +
       '<div class="lib-panel-meta">' +
         '<span class="badge-trust badge-' + trustClass(r.trust) + '">' + r.trust + '</span>' +
