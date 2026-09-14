@@ -1,15 +1,12 @@
 {
-  "name": "@secstreet/project",
+  "name": "@secstreet/storage",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "dependencies": {
-    "@secstreet/capability": "workspace:*",
-    "@secstreet/contracts": "workspace:*",
-    "@secstreet/security": "workspace:*",
-    "@secstreet/storage": "workspace:*"
+    "@secstreet/contracts": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

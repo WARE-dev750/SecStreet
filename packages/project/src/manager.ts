@@ -1,10 +1,16 @@
-import { readFile, writeFile, mkdir, cp, rm, stat } from "node:fs/promises";
+import { mkdir, cp, rm, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { validateProjectManifest, type ProjectManifest, type InstalledCapabilityRecord } from "@secstreet/contracts";
+import {
+  validateProjectManifest,
+  type ProjectManifest,
+  type InstalledCapabilityRecord,
+  type Storage,
+} from "@secstreet/contracts";
 import { loadRegistry, hashDirectory, type RegisteredCapability } from "@secstreet/capability";
+import { LocalStorage } from "@secstreet/storage";
 import { TrustStore } from "@secstreet/security";
-import { AuditLog, auditPathFor, type AuditEntry } from "./audit.js";
+import { AuditLog, AUDIT_PATH, type AuditEntry } from "./audit.js";
 import { verifySignature, readSignature } from "./signature.js";
 
 const MANIFEST = "secstreet.json";
@@ -15,8 +21,18 @@ export interface InstallOptions {
   requireSignatureFor?: Array<"verified" | "restricted">;
 }
 
+// Project holds user data (secstreet.json, .secstreet/audit.log) through a
+// Storage backend, and holds capability code as real files on disk.
+//
+// The Storage boundary is what makes the project portable. A future
+// SupabaseStorage or WorkersKVStorage implements the same interface and
+// every line below keeps working unchanged.
 export class Project {
-  private constructor(public readonly root: string, private manifest: ProjectManifest) {}
+  private constructor(
+    public readonly root: string,
+    private readonly storage: Storage,
+    private manifest: ProjectManifest
+  ) {}
 
   static findRoot(start: string): string | null {
     let dir = resolve(start);
@@ -28,35 +44,43 @@ export class Project {
     }
   }
 
-  static async open(root: string): Promise<Project> {
-    const raw = await readFile(join(root, MANIFEST), "utf8");
+  static async open(root: string, storage?: Storage): Promise<Project> {
+    const s = storage ?? new LocalStorage(root);
+    const raw = await s.read(MANIFEST);
+    if (raw === null) throw new Error(MANIFEST + " not found under " + root);
     const check = validateProjectManifest(JSON.parse(raw));
     if (!check.ok) throw new Error("invalid " + MANIFEST + ": " + check.errors.join(", "));
-    return new Project(root, check.value);
+    return new Project(root, s, check.value);
   }
 
-  static async init(root: string, name: string): Promise<Project> {
-    if (existsSync(join(root, MANIFEST))) throw new Error(MANIFEST + " already exists in " + root);
+  static async init(root: string, name: string, storage?: Storage): Promise<Project> {
+    const explicit = storage !== undefined;
+    const s = storage ?? new LocalStorage(root);
+    if (await s.exists(MANIFEST)) throw new Error(MANIFEST + " already exists in " + root);
     const manifest: ProjectManifest = { name, version: "0.0.1", installed: {} };
-    await mkdir(join(root, "capabilities"), { recursive: true });
-    await mkdir(join(root, "workflows"), { recursive: true });
-    await mkdir(join(root, ".secstreet", "keys"), { recursive: true });
-    await writeFile(join(root, MANIFEST), JSON.stringify(manifest, null, 2) + "\n");
-    await writeFile(join(root, ".gitignore"), "node_modules/\nresults/\n.secstreet/\n");
-    return new Project(resolve(root), manifest);
+    if (!explicit) {
+      // Real directories for capability code and workflow files.
+      await mkdir(join(root, "capabilities"), { recursive: true });
+      await mkdir(join(root, "workflows"), { recursive: true });
+      await mkdir(join(root, ".secstreet", "keys"), { recursive: true });
+    }
+    await s.write(MANIFEST, JSON.stringify(manifest, null, 2) + "\n");
+    await s.write(".gitignore", "node_modules/\nresults/\n.secstreet/\n");
+    return new Project(resolve(root), s, manifest);
   }
 
   get manifestData(): ProjectManifest { return this.manifest; }
   get capabilitiesDir(): string { return join(this.root, "capabilities"); }
-  get auditLog(): AuditLog { return new AuditLog(auditPathFor(this.root)); }
+  get auditLog(): AuditLog { return new AuditLog(this.storage, AUDIT_PATH); }
   get secstreetDir(): string { return join(this.root, ".secstreet"); }
   get keysDir(): string { return join(this.root, ".secstreet", "keys"); }
   get trustPath(): string { return join(this.root, ".secstreet", "trust.json"); }
 
   async save(): Promise<void> {
-    await writeFile(join(this.root, MANIFEST), JSON.stringify(this.manifest, null, 2) + "\n");
+    await this.storage.write(MANIFEST, JSON.stringify(this.manifest, null, 2) + "\n");
   }
 
+  // TrustStore is still file-based; migrating it to Storage is a later step.
   async loadTrustStore(): Promise<TrustStore> {
     return TrustStore.load(this.trustPath);
   }

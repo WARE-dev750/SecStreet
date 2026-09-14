@@ -35,6 +35,9 @@ importers:
       '@secstreet/service-registry':
         specifier: workspace:*
         version: link:services/registry
+      '@secstreet/storage':
+        specifier: workspace:*
+        version: link:packages/storage
       '@secstreet/workflow':
         specifier: workspace:*
         version: link:packages/workflow
@@ -117,6 +120,9 @@ importers:
       '@secstreet/security':
         specifier: workspace:*
         version: link:../security
+      '@secstreet/storage':
+        specifier: workspace:*
+        version: link:../storage
 
   packages/runtime:
     dependencies:
@@ -162,6 +168,12 @@ importers:
       '@secstreet/capability':
         specifier: workspace:*
         version: link:../capability
+      '@secstreet/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
+  packages/storage:
+    dependencies:
       '@secstreet/contracts':
         specifier: workspace:*
         version: link:../contracts

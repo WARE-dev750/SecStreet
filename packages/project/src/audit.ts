@@ -1,5 +1,4 @@
-import { appendFile, mkdir, readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import type { Storage } from "@secstreet/contracts";
 
 export type AuditOutcome = "ok" | "error" | "denied-policy" | "denied-integrity";
 
@@ -20,21 +19,22 @@ export interface AuditEntry {
   stepId?: string;
 }
 
+export const AUDIT_PATH = ".secstreet/audit.log";
+
+// AuditLog writes to a Storage backend. The default Project uses
+// LocalStorage rooted at the project directory, so entries land in
+// .secstreet/audit.log on disk. Passing MemoryStorage makes the log
+// live only in memory — useful for tests and preview environments.
 export class AuditLog {
-  constructor(private readonly path: string) {}
+  constructor(private readonly storage: Storage, private readonly path: string) {}
 
   async append(entry: AuditEntry): Promise<void> {
-    await mkdir(dirname(this.path), { recursive: true });
-    await appendFile(this.path, JSON.stringify(entry) + "\n", "utf8");
+    await this.storage.append(this.path, JSON.stringify(entry) + "\n");
   }
 
   async read(): Promise<AuditEntry[]> {
-    let raw: string;
-    try {
-      raw = await readFile(this.path, "utf8");
-    } catch {
-      return [];
-    }
+    const raw = await this.storage.read(this.path);
+    if (!raw) return [];
     const out: AuditEntry[] = [];
     for (const line of raw.split("\n")) {
       const trimmed = line.trim();
@@ -54,6 +54,7 @@ export class AuditLog {
   }
 }
 
+// Kept for compatibility with code that still calls auditPathFor().
 export function auditPathFor(projectRoot: string): string {
-  return join(projectRoot, ".secstreet", "audit.log");
+  return projectRoot + "/" + AUDIT_PATH;
 }
