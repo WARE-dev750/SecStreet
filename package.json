@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "pnpm -r typecheck",
-    "cli": "tsx packages/sdk/src/cli/cli.ts"
+    "cli": "tsx packages/sdk/src/cli/cli.ts",
+    "build:capabilities": "node scripts/build-capabilities-json.mjs",
+    "deploy": "bash scripts/deploy-pages.sh"
   },
   "devDependencies": {
     "@secstreet/ai": "workspace:*",

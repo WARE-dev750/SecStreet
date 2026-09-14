@@ -1,0 +1,86 @@
+/* SecStreet shared styles — colors, badges, buttons, scrollbars.
+   Every page loads this. Only one file to change to swap themes. */
+
+:root{
+  /* light theme — clean, minimal, high-contrast text */
+  --ink:#ffffff;
+  --bg:#f7f7f8;
+  --bg-2:#f0f0f2;
+  --surf:#e8e8eb;
+  --elev:#dcdce0;
+  --hair:#e2e2e6;
+  --hair-soft:#ececed;
+  --cream:#1f1f23;
+  --cream-2:#4a4a52;
+  --cream-3:#787880;
+  --cream-4:#a8a8b0;
+  --gold:#1a73e8;
+  --gold-hi:#3b86e8;
+  --gold-lo:#1557b0;
+  --ok:#1e8e3e;
+  --warn:#c77700;
+  --err:#d93025;
+  --info:#1a73e8;
+  --fs-micro:10.5px; --fs-tiny:11.5px; --fs-base:12.5px; --fs-body:13px; --fs-title:14px; --fs-h:16px;
+  --s-1:4px; --s-2:6px; --s-3:10px; --s-4:14px; --s-5:20px; --s-6:28px;
+  --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",system-ui,sans-serif;
+  --shadow-1:0 1px 2px rgba(0,0,0,.05);
+  --shadow-2:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.05);
+  --shadow-3:0 20px 60px rgba(0,0,0,.15),0 1px 2px rgba(0,0,0,.1);
+  --glow-gold:0 0 0 1px rgba(26,115,232,.4),0 0 0 4px rgba(26,115,232,.1);
+}
+
+/* Alt theme — uncomment to switch to VS Code defaults */
+/*
+:root{
+  --ink:#101010; --bg:#181818; --bg-2:#1f1f1f; --surf:#252526; --elev:#2d2d2d;
+  --hair:#3c3c3c; --hair-soft:#2a2a2a;
+  --cream:#cccccc; --cream-2:#9a9a9a; --cream-3:#7a7a7a; --cream-4:#5a5a5a;
+  --gold:#007acc; --gold-hi:#1a8cd8; --gold-lo:#005a9e;
+  --ok:#4ec9b0; --warn:#d7ba7d; --err:#f48771; --info:#569cd6;
+}
+*/
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--ink);color:var(--cream);font-size:var(--fs-body);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;transition:background .14s,color .14s,border-color .14s}
+button:active{transform:translateY(1px)}
+input,textarea{font-family:inherit;outline:none}
+input:focus,textarea:focus{box-shadow:var(--glow-gold);border-color:var(--gold-lo)}
+
+.badge{
+  display:inline-flex;align-items:center;
+  padding:1px 7px;border-radius:999px;
+  font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;font-weight:600;
+  font-family:var(--sans);line-height:1.5;
+}
+.badge.community{background:rgba(134,118,104,.18);color:var(--cream-2);border:1px solid rgba(134,118,104,.25)}
+.badge.professional{background:rgba(212,177,113,.14);color:var(--gold);border:1px solid rgba(212,177,113,.28)}
+.badge.verified{background:rgba(157,191,106,.14);color:var(--ok);border:1px solid rgba(157,191,106,.28)}
+.badge.restricted{background:rgba(217,128,112,.14);color:var(--err);border:1px solid rgba(217,128,112,.28)}
+
+.btn-primary{
+  padding:6px 14px;border-radius:5px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold));
+  color:var(--ink);font-weight:600;font-size:var(--fs-tiny);letter-spacing:.02em;
+  box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 1px 2px rgba(0,0,0,.35);
+}
+.btn-primary:hover{background:linear-gradient(180deg,#eace8f,var(--gold-hi))}
+.btn-primary:disabled{opacity:.6;cursor:default}
+
+.btn-ghost{
+  padding:5px 11px;border-radius:4px;color:var(--cream-2);
+  font-size:var(--fs-tiny);border:1px solid transparent;background:transparent;
+}
+.btn-ghost:hover{background:var(--surf);color:var(--cream);border-color:var(--hair)}
+
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg,var(--hair),var(--hair-soft));
+  border-radius:6px;border:3px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,var(--elev),var(--hair))}
+::-webkit-scrollbar-corner{background:transparent}

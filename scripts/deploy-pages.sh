@@ -1,26 +1,31 @@
 #!/usr/bin/env bash
-# Deploy apps/web/public/ to Cloudflare Pages.
+# Build the static public site and deploy it to Cloudflare Pages.
 #
-#   1. Install wrangler once:   npm i -g wrangler
-#   2. Log in:                  wrangler login
-#   3. Run this:                bash scripts/deploy-pages.sh
+#   1. One-time: npm i -g wrangler && wrangler login
+#   2. Run:      bash scripts/deploy-pages.sh
 #
-# First run creates the Pages project; subsequent runs push a new version.
+# What ships: a landing page (as index), the library, the search JSON,
+# and shared CSS. The IDE is local-only and is not deployed.
 set -euo pipefail
-
-PROJECT_NAME="secstreet"
-
-if ! command -v wrangler >/dev/null 2>&1; then
-  echo "wrangler not installed. run: npm i -g wrangler"
-  exit 1
-fi
 
 cd "$(dirname "$0")/.."
 
-if ! wrangler pages project list 2>/dev/null | grep -q "$PROJECT_NAME"; then
-  echo "creating Pages project: $PROJECT_NAME"
-  wrangler pages project create "$PROJECT_NAME" --production-branch main
-fi
+# 1. Rebuild the capabilities.json that the library page reads.
+echo "building capabilities.json..."
+node scripts/build-capabilities-json.mjs
 
-echo "deploying apps/web/public to $PROJECT_NAME"
-wrangler pages deploy apps/web/public --project-name "$PROJECT_NAME" --branch main
+# 2. Assemble a clean deploy directory.
+STAGE=deploy
+rm -rf "$STAGE"
+mkdir -p "$STAGE"
+cp apps/web/public/landing.html   "$STAGE/index.html"
+cp apps/web/public/library.html   "$STAGE/library.html"
+cp apps/web/public/library.js     "$STAGE/library.js"
+cp apps/web/public/library.css    "$STAGE/library.css"
+cp apps/web/public/shared.css     "$STAGE/shared.css"
+cp apps/web/public/capabilities.json "$STAGE/capabilities.json"
+
+# 3. Deploy.
+PROJECT_NAME="secstreet"
+echo "deploying $STAGE to Cloudflare Pages ($PROJECT_NAME)..."
+wrangler pages deploy "$STAGE" --project-name "$PROJECT_NAME" --branch main --commit-dirty=true

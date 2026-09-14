@@ -1,0 +1,1902 @@
+[
+  {
+    "manifest": {
+      "name": "disk-usage",
+      "version": "0.1.0",
+      "description": "Report filesystem usage per mount by wrapping df.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "MIT",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system df binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "system",
+        "storage",
+        "recon"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "filesystems"
+      ],
+      "properties": {
+        "filesystems": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "filesystem",
+              "mount",
+              "blocksKb",
+              "usedKb",
+              "availKb",
+              "usePercent"
+            ],
+            "properties": {
+              "filesystem": {
+                "type": "string"
+              },
+              "mount": {
+                "type": "string"
+              },
+              "blocksKb": {
+                "type": "number"
+              },
+              "usedKb": {
+                "type": "number"
+              },
+              "availKb": {
+                "type": "number"
+              },
+              "usePercent": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      JSON.parse(raw || \"{}\");\n      const r = spawnSync(\"df\", [\"-kP\"], { encoding: \"utf8\", timeout: 4000 });\n      if (r.error) throw new Error(\"df failed: \" + r.error.message);\n      if (r.status !== 0) throw new Error(\"df exit \" + r.status + \": \" + String(r.stderr || \"\").trim());\n      const filesystems = [];\n      const lines = r.stdout.split(/\\r?\\n/);\n      for (let i = 1; i < lines.length; i++) {\n        const line = lines[i];\n        if (!line.trim()) continue;\n        const parts = line.trim().split(/\\s+/);\n        if (parts.length < 6) continue;\n        const usePercent = Number(String(parts[4]).replace(\"%\", \"\"));\n        filesystems.push({\n          filesystem: parts[0],\n          blocksKb: Number(parts[1]),\n          usedKb: Number(parts[2]),\n          availKb: Number(parts[3]),\n          usePercent: Number.isFinite(usePercent) ? usePercent : 0,\n          mount: parts.slice(5).join(\" \")\n        });\n      }\n      process.stdout.write(JSON.stringify({ filesystems }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "elf-dynamic",
+      "version": "0.1.0",
+      "description": "Read the ELF dynamic section: needed libraries, rpath, runpath, and dynamic flags.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "Proprietary",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps readelf"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "elf",
+        "dynamic",
+        "libraries",
+        "reverse-engineering",
+        "linux"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "needed",
+        "entries"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "needed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rpath": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "runpath": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "tag",
+              "value"
+            ],
+            "properties": {
+              "tag": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\n// readelf -d output rows look like:\n//   0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]\n//   0x000000000000000f (RPATH)              Library rpath: [/opt/lib]\nconst TAG_RE = /^\\s*0x[0-9a-fA-F]+\\s+\\(([^)]+)\\)\\s+(.*)$/;\n\nfunction parse(text) {\n  const entries = [];\n  const needed = [];\n  const rpath = [];\n  const runpath = [];\n  for (const line of text.split(/\\r?\\n/)) {\n    const m = TAG_RE.exec(line);\n    if (!m) continue;\n    const tag = m[1];\n    const rest = m[2].trim();\n    let value = rest;\n    const bracket = rest.match(/\\[(.*)\\]\\s*$/);\n    if (bracket) value = bracket[1];\n    entries.push({ tag, value });\n    if (tag === \"NEEDED\") needed.push(value);\n    else if (tag === \"RPATH\") rpath.push(value);\n    else if (tag === \"RUNPATH\") runpath.push(value);\n  }\n  return { entries, needed, rpath, runpath };\n}\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const { path } = JSON.parse(raw || \"{}\");\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n      const r = spawnSync(\"readelf\", [\"-d\", \"--\", path], { encoding: \"utf8\", timeout: 4000 });\n      if (r.error) throw new Error(\"readelf failed: \" + r.error.message);\n      if (r.status !== 0) throw new Error(\"readelf exit \" + r.status + \": \" + String(r.stderr || \"\").trim());\n      const parsed = parse(r.stdout);\n      process.stdout.write(JSON.stringify({ path, needed: parsed.needed, rpath: parsed.rpath, runpath: parsed.runpath, entries: parsed.entries }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "elf-header",
+      "version": "0.1.0",
+      "description": "Read the ELF file header and return it as structured fields.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "Proprietary",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system readelf binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "elf",
+        "binary",
+        "header",
+        "reverse-engineering",
+        "linux"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "class",
+        "data",
+        "type",
+        "machine",
+        "entry"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "class": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        },
+        "osabi": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "machine": {
+          "type": "string"
+        },
+        "entry": {
+          "type": "string"
+        },
+        "programHeaderCount": {
+          "type": "number"
+        },
+        "sectionHeaderCount": {
+          "type": "number"
+        },
+        "raw": {
+          "type": "string"
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\nfunction parseHeader(text) {\n  const out = {};\n  for (const line of text.split(/\\r?\\n/)) {\n    const m = line.match(/^\\s{2}([A-Za-z][^:]*):\\s+(.*)$/);\n    if (!m) continue;\n    out[m[1].trim()] = m[2].trim();\n  }\n  return out;\n}\n\nfunction pick(field) {\n  return typeof field === \"string\" ? field.split(\"(\")[0].trim() : \"\";\n}\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const { path } = JSON.parse(raw || \"{}\");\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n\n      const r = spawnSync(\"readelf\", [\"-h\", \"--\", path], { encoding: \"utf8\", timeout: 4000 });\n      if (r.error) throw new Error(\"readelf failed: \" + r.error.message);\n      if (r.status !== 0) {\n        const err = String(r.stderr || \"\").trim();\n        throw new Error(\"readelf exit \" + r.status + (err ? \": \" + err : \"\"));\n      }\n\n      const h = parseHeader(r.stdout);\n      if (!h[\"Class\"]) throw new Error(\"not an ELF file (no Class field in readelf output)\");\n\n      const numOrZero = (s) => {\n        const n = parseInt(String(s || \"\").trim(), 10);\n        return Number.isFinite(n) ? n : 0;\n      };\n\n      process.stdout.write(JSON.stringify({\n        path,\n        class: pick(h[\"Class\"]),\n        data: pick(h[\"Data\"]),\n        osabi: pick(h[\"OS/ABI\"]),\n        type: pick(h[\"Type\"]),\n        machine: pick(h[\"Machine\"]),\n        entry: (h[\"Entry point address\"] || \"\").trim(),\n        programHeaderCount: numOrZero(h[\"Number of program headers\"]),\n        sectionHeaderCount: numOrZero(h[\"Number of section headers\"]),\n        raw: r.stdout.trim()\n      }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "elf-relocations",
+      "version": "0.1.0",
+      "description": "List ELF relocations per section: offset, info, type, and symbol.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "Proprietary",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps readelf"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "elf",
+        "relocations",
+        "binary",
+        "reverse-engineering",
+        "linux"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "sections"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "section",
+              "entries"
+            ],
+            "properties": {
+              "section": {
+                "type": "string"
+              },
+              "entries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "offset",
+                    "info",
+                    "type",
+                    "symbol"
+                  ],
+                  "properties": {
+                    "offset": {
+                      "type": "string"
+                    },
+                    "info": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "symbol": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\n// readelf -rW output:\n//   Relocation section '.rela.dyn' at offset 0x640 contains 3 entries:\n//     Offset          Info           Type           Sym. Value    Sym. Name + Addend\n//   0000000000003d98  0000000000000008 R_X86_64_RELATIVE                    1140\nconst SEC_RE = /^Relocation section '([^']+)'/;\nconst ROW_RE = /^\\s*([0-9a-fA-F]+)\\s+([0-9a-fA-F]+)\\s+(\\S+)\\s+(.*)$/;\n\nfunction parse(text) {\n  const sections = [];\n  let current = null;\n  for (const line of text.split(/\\r?\\n/)) {\n    const sm = SEC_RE.exec(line);\n    if (sm) {\n      current = { section: sm[1], entries: [] };\n      sections.push(current);\n      continue;\n    }\n    if (!current) continue;\n    const m = ROW_RE.exec(line);\n    if (!m) continue;\n    const tail = (m[4] || \"\").trim();\n    // Symbol is the first token in the tail that isn't purely hex, if any.\n    const tokens = tail.split(/\\s+/);\n    const symbol = tokens.length > 0 && !/^[0-9a-fA-F]+$/.test(tokens[0]) ? tokens[0] : \"\";\n    current.entries.push({ offset: m[1], info: m[2], type: m[3], symbol });\n  }\n  return sections;\n}\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const { path } = JSON.parse(raw || \"{}\");\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n      const r = spawnSync(\"readelf\", [\"-r\", \"-W\", \"--\", path], { encoding: \"utf8\", timeout: 4000, maxBuffer: 64 * 1024 * 1024 });\n      if (r.error) throw new Error(\"readelf failed: \" + r.error.message);\n      if (r.status !== 0) throw new Error(\"readelf exit \" + r.status + \": \" + String(r.stderr || \"\").trim());\n      process.stdout.write(JSON.stringify({ path, sections: parse(r.stdout) }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "elf-sections",
+      "version": "0.1.0",
+      "description": "List ELF section headers with name, type, address, offset, size, and flags.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "Proprietary",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system readelf binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "elf",
+        "binary",
+        "sections",
+        "reverse-engineering",
+        "linux"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "sections"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "type",
+              "address",
+              "offset",
+              "size"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "address": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "string"
+              },
+              "size": {
+                "type": "string"
+              },
+              "flags": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\n// readelf -S -W output sample (one line per section after the column header):\n//   [ 1] .interp           PROGBITS        0000000000000318 000318 00001c 00   A  0   0  1\n// We only need the leading fields; extra trailing columns are ignored.\nconst SECTION_RE = /^\\s*\\[\\s*\\d+\\]\\s+(\\S+)\\s+(\\S+)\\s+([0-9a-fA-F]+)\\s+([0-9a-fA-F]+)\\s+([0-9a-fA-F]+)\\s+[0-9a-fA-F]+\\s*(.*?)\\s*$/;\n\nfunction parseSections(text) {\n  const out = [];\n  let inSections = false;\n  for (const line of text.split(/\\r?\\n/)) {\n    if (/^Section Headers:/.test(line)) { inSections = true; continue; }\n    if (!inSections) continue;\n    if (/^\\s*\\[Nr\\]/.test(line)) continue;\n    if (/^\\s*Key to Flags:/.test(line)) break;\n    const m = SECTION_RE.exec(line);\n    if (!m) continue;\n    const tail = (m[6] || \"\").trim();\n    // tail can be \"0   0  1\" (no flags), \"A  0   0  1\" (flag A + links), \"AX  0   0  1\", etc.\n    // flags are non-numeric short tokens at the start of tail\n    const flagParts = [];\n    for (const token of tail.split(/\\s+/)) {\n      if (/^[A-Z]+$/.test(token)) flagParts.push(token);\n      else break;\n    }\n    out.push({\n      name: m[1],\n      type: m[2],\n      address: m[3],\n      offset: m[4],\n      size: m[5],\n      flags: flagParts.join(\"\")\n    });\n  }\n  return out;\n}\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const { path } = JSON.parse(raw || \"{}\");\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n\n      const r = spawnSync(\"readelf\", [\"-S\", \"-W\", \"--\", path], { encoding: \"utf8\", timeout: 4000 });\n      if (r.error) throw new Error(\"readelf failed: \" + r.error.message);\n      if (r.status !== 0) {\n        const err = String(r.stderr || \"\").trim();\n        throw new Error(\"readelf exit \" + r.status + (err ? \": \" + err : \"\"));\n      }\n\n      const sections = parseSections(r.stdout);\n      if (sections.length === 0) throw new Error(\"no section headers found (not an ELF file?)\");\n\n      process.stdout.write(JSON.stringify({ path, sections }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "elf-symbols",
+      "version": "0.1.0",
+      "description": "List the ELF symbol table: name, type, binding, visibility, and section index.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "Proprietary",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps readelf"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "elf",
+        "symbols",
+        "reverse-engineering",
+        "linux"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "defined": {
+          "type": "boolean"
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "count",
+        "symbols"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "count": {
+          "type": "number"
+        },
+        "symbols": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "type",
+              "bind",
+              "vis",
+              "ndx"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "bind": {
+                "type": "string"
+              },
+              "vis": {
+                "type": "string"
+              },
+              "ndx": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\n// readelf -sW rows:\n//    Num:    Value          Size Type    Bind   Vis      Ndx Name\n//     12: 0000000000001000    42 FUNC    GLOBAL DEFAULT   12 main\nconst SYM_RE = /^\\s*\\d+:\\s+[0-9a-fA-F]+\\s+\\d+\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.*)$/;\n\nfunction parse(text) {\n  const out = [];\n  for (const line of text.split(/\\r?\\n/)) {\n    if (/^\\s*Num:/.test(line)) continue;\n    if (/^Symbol table /.test(line)) continue;\n    const m = SYM_RE.exec(line);\n    if (!m) continue;\n    out.push({\n      type: m[1], bind: m[2], vis: m[3], ndx: m[4],\n      name: (m[5] || \"\").trim()\n    });\n  }\n  return out;\n}\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const input = JSON.parse(raw || \"{}\");\n      const path = input.path;\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n      const args = input.defined ? [\"-s\", \"-W\", \"--\", path] : [\"-s\", \"-W\", \"--\", path];\n      const r = spawnSync(\"readelf\", args, { encoding: \"utf8\", timeout: 4000, maxBuffer: 64 * 1024 * 1024 });\n      if (r.error) throw new Error(\"readelf failed: \" + r.error.message);\n      if (r.status !== 0) throw new Error(\"readelf exit \" + r.status + \": \" + String(r.stderr || \"\").trim());\n      let symbols = parse(r.stdout);\n      if (input.defined) symbols = symbols.filter((s) => s.ndx !== \"UND\");\n      process.stdout.write(JSON.stringify({ path, count: symbols.length, symbols }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "extract-source-ips",
+      "version": "0.1.0",
+      "description": "Extract unique source IPs from a list of auth events, sorted by first appearance.",
+      "language": "python",
+      "entrypoint": "main.py",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [],
+      "risk": "low",
+      "trust": "community",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "MIT",
+        "version": "0.1.0",
+        "modifications": []
+      },
+      "maintainer": "SecStreet",
+      "tags": [
+        "auth",
+        "log",
+        "network",
+        "python",
+        "defensive"
+      ],
+      "category": "defensive"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "events"
+      ],
+      "properties": {
+        "events": {
+          "type": "array"
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "ips"
+      ],
+      "properties": {
+        "ips": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env python3\nimport json\nimport sys\n\ndef main() -> None:\n    raw = sys.stdin.read() or \"{}\"\n    try:\n        payload = json.loads(raw)\n    except json.JSONDecodeError as exc:\n        print(f\"invalid JSON input: {exc}\", file=sys.stderr)\n        sys.exit(1)\n\n    events = payload.get(\"events\")\n    if not isinstance(events, list):\n        print(\"input.events must be a list\", file=sys.stderr)\n        sys.exit(1)\n\n    seen = set()\n    ordered = []\n    for event in events:\n        if not isinstance(event, dict):\n            continue\n        ip = event.get(\"ip\")\n        if not isinstance(ip, str):\n            continue\n        if ip in seen:\n            continue\n        seen.add(ip)\n        ordered.append(ip)\n\n    sys.stdout.write(json.dumps({\"ips\": ordered}))\n\nif __name__ == \"__main__\":\n    main()\n"
+  },
+  {
+    "manifest": {
+      "name": "filter-failed-logins",
+      "version": "0.1.0",
+      "description": "Keep only authentication events where result is failure.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [],
+      "risk": "low",
+      "trust": "community",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "MIT",
+        "version": "0.1.0",
+        "modifications": []
+      },
+      "maintainer": "SecStreet",
+      "tags": [
+        "auth",
+        "log",
+        "filter",
+        "defensive"
+      ],
+      "category": "defensive"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "events"
+      ],
+      "properties": {
+        "events": {
+          "type": "array"
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "events"
+      ],
+      "properties": {
+        "events": {
+          "type": "array"
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nlet raw = \"\";\nprocess.stdin.on(\"data\", (d) => (raw += d.toString()));\nprocess.stdin.on(\"end\", () => {\n  try {\n    const { events } = JSON.parse(raw || \"{}\");\n    if (!Array.isArray(events)) throw new Error(\"input.events must be an array\");\n    const filtered = events.filter((e) => e && e.result === \"failure\");\n    process.stdout.write(JSON.stringify({ events: filtered }));\n  } catch (err) {\n    process.stderr.write(String(err && err.message ? err.message : err));\n    process.exit(1);\n  }\n});\n"
+  },
+  {
+    "manifest": {
+      "name": "hash-file",
+      "version": "0.1.0",
+      "description": "Compute the sha256 hash of a file by wrapping sha256sum.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "MIT",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system sha256sum binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 10000
+      },
+      "tags": [
+        "crypto",
+        "hash",
+        "filesystem"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const { path } = JSON.parse(raw || \"{}\");\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n      const r = spawnSync(\"sha256sum\", [\"--\", path], { encoding: \"utf8\", timeout: 8000 });\n      if (r.error) throw new Error(\"sha256sum failed: \" + r.error.message);\n      if (r.status !== 0) throw new Error(\"sha256sum exit \" + r.status + \": \" + String(r.stderr || \"\").trim());\n      const m = r.stdout.match(/^([0-9a-f]{64})\\s/);\n      if (!m) throw new Error(\"unexpected sha256sum output\");\n      process.stdout.write(JSON.stringify({ path, sha256: m[1] }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "identify-file",
+      "version": "0.1.0",
+      "description": "Identify a file by mime type and description using the file command.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "MIT",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system file binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 8000
+      },
+      "tags": [
+        "filesystem",
+        "file",
+        "analysis"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "mime",
+        "description"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "mime": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const { path } = JSON.parse(raw || \"{}\");\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n      const mimeRun = spawnSync(\"file\", [\"-b\", \"--mime-type\", \"--\", path], { encoding: \"utf8\", timeout: 6000 });\n      if (mimeRun.error || mimeRun.status !== 0) throw new Error(\"file --mime-type failed: \" + String(mimeRun.stderr || \"\").trim());\n      const descRun = spawnSync(\"file\", [\"-b\", \"--\", path], { encoding: \"utf8\", timeout: 6000 });\n      if (descRun.error || descRun.status !== 0) throw new Error(\"file failed: \" + String(descRun.stderr || \"\").trim());\n      process.stdout.write(JSON.stringify({\n        path,\n        mime: mimeRun.stdout.trim(),\n        description: descRun.stdout.trim()\n      }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "ldd-dependencies",
+      "version": "0.1.0",
+      "description": "List shared-library dependencies of an ELF binary using ldd, with the resolved path or 'not found' marker.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "Proprietary",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps ldd"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "libraries",
+        "dependencies",
+        "elf",
+        "linux"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "dependencies",
+        "missing"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "resolved"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "resolved": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\n// ldd output rows:\n//   linux-vdso.so.1 (0x00007ffe...)\n//   libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f...)\n//   libfoo.so => not found\nconst ROW_RE = /^\\s*(\\S+)\\s+=>\\s+(\\S+.*?)(?:\\s+\\(0x[0-9a-fA-F]+\\))?$/;\nconst PLAIN_RE = /^\\s*(\\S+)\\s+\\(0x[0-9a-fA-F]+\\)\\s*$/;\n\nfunction parse(text) {\n  const dependencies = [];\n  const missing = [];\n  for (const line of text.split(/\\r?\\n/)) {\n    if (!line.trim()) continue;\n    const m = ROW_RE.exec(line);\n    if (m) {\n      const name = m[1];\n      const resolved = m[2].trim();\n      if (resolved === \"not found\") {\n        missing.push(name);\n        dependencies.push({ name, resolved: \"not found\" });\n      } else {\n        dependencies.push({ name, resolved });\n      }\n      continue;\n    }\n    const p = PLAIN_RE.exec(line);\n    if (p) dependencies.push({ name: p[1], resolved: p[1] });\n  }\n  return { dependencies, missing };\n}\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const { path } = JSON.parse(raw || \"{}\");\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n      const r = spawnSync(\"ldd\", [\"--\", path], { encoding: \"utf8\", timeout: 4000 });\n      if (r.error) throw new Error(\"ldd failed: \" + r.error.message);\n      if (r.status !== 0) {\n        // ldd exits non-zero for static binaries and non-ELF files; stderr is the reason\n        const err = String(r.stderr || \"\").trim();\n        throw new Error(\"ldd exit \" + r.status + (err ? \": \" + err : \"\"));\n      }\n      const parsed = parse(r.stdout);\n      process.stdout.write(JSON.stringify({ path, dependencies: parsed.dependencies, missing: parsed.missing }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "list-listening-ports",
+      "version": "0.1.0",
+      "description": "List listening TCP and UDP sockets by wrapping the ss command.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux"
+      ],
+      "permissions": [
+        "subprocess"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "MIT",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system ss binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "network",
+        "ports",
+        "recon",
+        "linux"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "sockets"
+      ],
+      "properties": {
+        "sockets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "proto",
+              "state",
+              "local",
+              "peer"
+            ],
+            "properties": {
+              "proto": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "local": {
+                "type": "string"
+              },
+              "peer": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      JSON.parse(raw || \"{}\");\n      const r = spawnSync(\"ss\", [\"-tulnH\"], { encoding: \"utf8\", timeout: 4000 });\n      if (r.error) throw new Error(\"ss failed: \" + r.error.message);\n      if (r.status !== 0) throw new Error(\"ss exit \" + r.status + \": \" + String(r.stderr || \"\").trim());\n      const sockets = [];\n      for (const line of r.stdout.split(/\\r?\\n/)) {\n        const parts = line.trim().split(/\\s+/);\n        if (parts.length < 5) continue;\n        sockets.push({ proto: parts[0], state: parts[1], local: parts[4], peer: parts[5] || \"\" });\n      }\n      process.stdout.write(JSON.stringify({ sockets }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "list-processes",
+      "version": "0.1.0",
+      "description": "List running processes by wrapping the ps command.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux"
+      ],
+      "permissions": [
+        "subprocess"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "MIT",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system ps binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "system",
+        "process",
+        "recon",
+        "linux"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "processes"
+      ],
+      "properties": {
+        "processes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "pid",
+              "user",
+              "comm"
+            ],
+            "properties": {
+              "pid": {
+                "type": "number"
+              },
+              "user": {
+                "type": "string"
+              },
+              "comm": {
+                "type": "string"
+              },
+              "args": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      JSON.parse(raw || \"{}\");\n      const r = spawnSync(\"ps\", [\"-eo\", \"pid=,user=,comm=,args=\"], { encoding: \"utf8\", timeout: 4000 });\n      if (r.error) throw new Error(\"ps failed: \" + r.error.message);\n      if (r.status !== 0) throw new Error(\"ps exit \" + r.status + \": \" + String(r.stderr || \"\").trim());\n      const processes = [];\n      for (const line of r.stdout.split(/\\r?\\n/)) {\n        const trimmed = line.trim();\n        if (!trimmed) continue;\n        const m = trimmed.match(/^(\\d+)\\s+(\\S+)\\s+(\\S+)\\s*(.*)$/);\n        if (!m) continue;\n        processes.push({ pid: Number(m[1]), user: m[2], comm: m[3], args: m[4] || \"\" });\n      }\n      process.stdout.write(JSON.stringify({ processes }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "objdump-disasm",
+      "version": "0.1.0",
+      "description": "Disassemble the executable sections of a binary and return instruction mnemonics grouped by section.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "Proprietary",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system objdump binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 30000
+      },
+      "tags": [
+        "disassembly",
+        "binary",
+        "reverse-engineering",
+        "linux"
+      ],
+      "category": "offensive"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "section": {
+          "type": "string",
+          "description": "Optional section name to disassemble (e.g. .text). Defaults to all executable sections."
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "sections"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "instructionCount",
+              "mnemonics"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "instructionCount": {
+                "type": "number"
+              },
+              "mnemonics": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\nconst SECTION_RE = /^Disassembly of section (\\S+):/;\nconst INSTRUCTION_RE = /^\\s*[0-9a-fA-F]+:\\s+(?:[0-9a-fA-F]{2}\\s+)+\\s*([a-z][a-z0-9.]*)\\s/;\n\nfunction parseDisasm(text) {\n  const out = [];\n  let current = null;\n  for (const line of text.split(/\\r?\\n/)) {\n    const sm = SECTION_RE.exec(line);\n    if (sm) {\n      current = { name: sm[1], instructionCount: 0, mnemonics: [] };\n      out.push(current);\n      continue;\n    }\n    if (!current) continue;\n    const im = INSTRUCTION_RE.exec(line);\n    if (!im) continue;\n    current.instructionCount += 1;\n    current.mnemonics.push(im[1]);\n  }\n  return out;\n}\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const { path, section } = JSON.parse(raw || \"{}\");\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n      if (section !== undefined && (typeof section !== \"string\" || section.startsWith(\"-\"))) {\n        throw new Error(\"input.section must be a non-empty string not starting with '-'\");\n      }\n\n      const args = section ? [\"-d\", \"-j\", section, \"--\", path] : [\"-d\", \"--\", path];\n      const r = spawnSync(\"objdump\", args, { encoding: \"utf8\", timeout: 25000, maxBuffer: 64 * 1024 * 1024 });\n      if (r.error) throw new Error(\"objdump failed: \" + r.error.message);\n      if (r.status !== 0) {\n        const err = String(r.stderr || \"\").trim();\n        throw new Error(\"objdump exit \" + r.status + (err ? \": \" + err : \"\"));\n      }\n\n      const sections = parseDisasm(r.stdout);\n      if (sections.length === 0) throw new Error(\"no disassembly found (not an executable ELF file?)\");\n\n      process.stdout.write(JSON.stringify({ path, sections }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "openssl-x509-info",
+      "version": "0.1.0",
+      "description": "Parse an X.509 certificate and return subject, issuer, serial, validity window, key algorithm, and extensions.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "Proprietary",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system openssl binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "certificate",
+        "x509",
+        "crypto",
+        "tls"
+      ],
+      "category": "defensive"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "subject",
+        "issuer",
+        "serial",
+        "notBefore",
+        "notAfter"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "serial": {
+          "type": "string"
+        },
+        "signatureAlgorithm": {
+          "type": "string"
+        },
+        "issuer": {
+          "type": "string"
+        },
+        "notBefore": {
+          "type": "string"
+        },
+        "notAfter": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "publicKeyAlgorithm": {
+          "type": "string"
+        },
+        "publicKeyBits": {
+          "type": "string"
+        },
+        "subjectAltNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isCA": {
+          "type": "boolean"
+        },
+        "raw": {
+          "type": "string"
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\n// openssl x509 -text -noout output has a stable two-space-indented shape.\n// We pull out the handful of fields a security analyst actually cares about.\nfunction parse(text) {\n  const out = {};\n  const lines = text.split(/\\r?\\n/);\n  for (let i = 0; i < lines.length; i++) {\n    const line = lines[i];\n    let m;\n    if ((m = line.match(/^\\s*Version:\\s+(.+)$/))) out.version = m[1].trim();\n    else if ((m = line.match(/^\\s*Serial Number:\\s*$/))) {\n      // serial continues on next lines until non-hex line\n      const parts = [];\n      for (let j = i + 1; j < lines.length; j++) {\n        const hex = lines[j].match(/^\\s*([0-9a-f:]+)\\s*$/i);\n        if (!hex) break;\n        parts.push(hex[1]);\n      }\n      out.serial = parts.join(\":\").replace(/:/g, \"\").trim();\n    }\n    else if ((m = line.match(/^\\s*Signature Algorithm:\\s*(.+)$/))) out.signatureAlgorithm = m[1].trim();\n    else if ((m = line.match(/^\\s*Issuer:\\s*(.+)$/))) out.issuer = m[1].trim();\n    else if ((m = line.match(/^\\s*Not Before:\\s*(.+)$/))) out.notBefore = m[1].trim();\n    else if ((m = line.match(/^\\s*Not After\\s*:\\s*(.+)$/))) out.notAfter = m[1].trim();\n    else if ((m = line.match(/^\\s*Subject:\\s*(.+)$/))) out.subject = m[1].trim();\n    else if ((m = line.match(/^\\s*Public Key Algorithm:\\s*(.+)$/))) out.publicKeyAlgorithm = m[1].trim();\n    else if ((m = line.match(/^\\s*Public-Key:\\s*\\((\\d+)\\s*bit\\)/))) out.publicKeyBits = m[1];\n    else if ((m = line.match(/^\\s*CA:(\\w+)/))) out.isCA = m[1].toUpperCase() === \"TRUE\";\n  }\n  return out;\n}\n\nfunction parseSubjectAltNames(text) {\n  // Example line: \"X509v3 Subject Alternative Name:\" followed by \"DNS:a.com, DNS:b.com\"\n  const lines = text.split(/\\r?\\n/);\n  const sans = [];\n  for (let i = 0; i < lines.length; i++) {\n    if (/X509v3 Subject Alternative Name:/.test(lines[i])) {\n      const next = lines[i + 1] || \"\";\n      for (const piece of next.split(/,\\s*/)) {\n        const p = piece.trim();\n        if (!p) continue;\n        const idx = p.indexOf(\":\");\n        sans.push(idx >= 0 ? p.slice(idx + 1) : p);\n      }\n    }\n  }\n  return sans;\n}\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const { path } = JSON.parse(raw || \"{}\");\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n\n      const r = spawnSync(\"openssl\", [\"x509\", \"-in\", path, \"-noout\", \"-text\"], {\n        encoding: \"utf8\", timeout: 4000\n      });\n      if (r.error) throw new Error(\"openssl failed: \" + r.error.message);\n      if (r.status !== 0) {\n        const err = String(r.stderr || \"\").trim();\n        throw new Error(\"openssl exit \" + r.status + (err ? \": \" + err : \"\"));\n      }\n\n      const parsed = parse(r.stdout);\n      const sans = parseSubjectAltNames(r.stdout);\n\n      if (!parsed.subject || !parsed.issuer) {\n        throw new Error(\"no certificate fields found (not a certificate?)\");\n      }\n\n      process.stdout.write(JSON.stringify({\n        path,\n        version: parsed.version ?? \"\",\n        serial: parsed.serial ?? \"\",\n        signatureAlgorithm: parsed.signatureAlgorithm ?? \"\",\n        issuer: parsed.issuer,\n        notBefore: parsed.notBefore ?? \"\",\n        notAfter: parsed.notAfter ?? \"\",\n        subject: parsed.subject,\n        publicKeyAlgorithm: parsed.publicKeyAlgorithm ?? \"\",\n        publicKeyBits: parsed.publicKeyBits ?? \"\",\n        subjectAltNames: sans,\n        isCA: parsed.isCA === true,\n        raw: r.stdout.trim()\n      }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "parse-auth-log",
+      "version": "0.1.0",
+      "description": "Parse an sshd-style auth log into structured events.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [],
+      "risk": "low",
+      "trust": "community",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "MIT",
+        "version": "0.1.0",
+        "modifications": []
+      },
+      "maintainer": "SecStreet",
+      "tags": [
+        "auth",
+        "log",
+        "parser",
+        "defensive"
+      ],
+      "category": "defensive"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "events"
+      ],
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "timestamp",
+              "user",
+              "ip",
+              "result"
+            ],
+            "properties": {
+              "timestamp": {
+                "type": "string"
+              },
+              "user": {
+                "type": "string"
+              },
+              "ip": {
+                "type": "string"
+              },
+              "result": {
+                "type": "string",
+                "enum": [
+                  "success",
+                  "failure"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nlet raw = \"\";\nprocess.stdin.on(\"data\", (d) => (raw += d.toString()));\nprocess.stdin.on(\"end\", () => {\n  try {\n    const { text } = JSON.parse(raw || \"{}\");\n    if (typeof text !== \"string\") throw new Error(\"input.text must be a string\");\n    const events = [];\n    for (const line of text.split(/\\r?\\n/)) {\n      const m = line.match(/^(\\S+ \\S+ \\S+)\\s+\\S+\\s+sshd\\[\\d+\\]:\\s+(Accepted|Failed) password for (\\S+) from (\\S+)/);\n      if (!m) continue;\n      events.push({\n        timestamp: m[1],\n        user: m[3],\n        ip: m[4],\n        result: m[2] === \"Accepted\" ? \"success\" : \"failure\"\n      });\n    }\n    process.stdout.write(JSON.stringify({ events }));\n  } catch (err) {\n    process.stderr.write(String(err && err.message ? err.message : err));\n    process.exit(1);\n  }\n});\n"
+  },
+  {
+    "manifest": {
+      "name": "pe-header",
+      "version": "0.1.0",
+      "description": "Parse the Portable Executable headers of a Windows binary: DOS stub, COFF file header, optional header, section table, and imports.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "Proprietary",
+        "version": "0.1.0",
+        "modifications": [
+          "pure JavaScript implementation; no external tool or library used"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "pe",
+        "windows",
+        "binary",
+        "header",
+        "reverse-engineering",
+        "malware"
+      ],
+      "category": "offensive"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "machine",
+        "numberOfSections",
+        "timestamp",
+        "characteristics",
+        "sections"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "machine": {
+          "type": "string"
+        },
+        "machineCode": {
+          "type": "number"
+        },
+        "numberOfSections": {
+          "type": "number"
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "timestampIso": {
+          "type": "string"
+        },
+        "characteristics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optionalHeaderMagic": {
+          "type": "string"
+        },
+        "subsystem": {
+          "type": "string"
+        },
+        "dllCharacteristics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "entryPoint": {
+          "type": "number"
+        },
+        "imageBase": {
+          "type": "string"
+        },
+        "sectionAlignment": {
+          "type": "number"
+        },
+        "fileAlignment": {
+          "type": "number"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "virtualAddress",
+              "virtualSize",
+              "rawSize",
+              "rawOffset"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "virtualAddress": {
+                "type": "number"
+              },
+              "virtualSize": {
+                "type": "number"
+              },
+              "rawSize": {
+                "type": "number"
+              },
+              "rawOffset": {
+                "type": "number"
+              },
+              "characteristics": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "isDll": {
+          "type": "boolean"
+        },
+        "isExe": {
+          "type": "boolean"
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { readFileSync } from \"node:fs\";\n\nconst MACHINES = {\n  0x014c: \"I386\",\n  0x0200: \"IA64\",\n  0x8664: \"AMD64\",\n  0x01c0: \"ARM\",\n  0x01c4: \"ARMNT\",\n  0xaa64: \"ARM64\",\n  0x5032: \"RISCV32\",\n  0x5064: \"RISCV64\",\n};\n\nconst FILE_CHARS = [\n  [0x0001, \"RELOCS_STRIPPED\"],\n  [0x0002, \"EXECUTABLE_IMAGE\"],\n  [0x0004, \"LINE_NUMS_STRIPPED\"],\n  [0x0008, \"LOCAL_SYMS_STRIPPED\"],\n  [0x0010, \"AGGRESSIVE_WS_TRIM\"],\n  [0x0020, \"LARGE_ADDRESS_AWARE\"],\n  [0x0080, \"BYTES_REVERSED_LO\"],\n  [0x0100, \"32BIT_MACHINE\"],\n  [0x0200, \"DEBUG_STRIPPED\"],\n  [0x0400, \"REMOVABLE_RUN_FROM_SWAP\"],\n  [0x0800, \"NET_RUN_FROM_SWAP\"],\n  [0x1000, \"SYSTEM\"],\n  [0x2000, \"DLL\"],\n  [0x4000, \"UP_SYSTEM_ONLY\"],\n  [0x8000, \"BYTES_REVERSED_HI\"],\n];\n\nconst DLL_CHARS = [\n  [0x0020, \"HIGH_ENTROPY_VA\"],\n  [0x0040, \"DYNAMIC_BASE\"],\n  [0x0080, \"FORCE_INTEGRITY\"],\n  [0x0100, \"NX_COMPAT\"],\n  [0x0200, \"NO_ISOLATION\"],\n  [0x0400, \"NO_SEH\"],\n  [0x0800, \"NO_BIND\"],\n  [0x1000, \"APPCONTAINER\"],\n  [0x2000, \"WDM_DRIVER\"],\n  [0x4000, \"GUARD_CF\"],\n  [0x8000, \"TERMINAL_SERVER_AWARE\"],\n];\n\nconst SUBSYSTEMS = {\n  0: \"UNKNOWN\", 1: \"NATIVE\", 2: \"WINDOWS_GUI\", 3: \"WINDOWS_CUI\",\n  5: \"OS2_CUI\", 7: \"POSIX_CUI\", 9: \"WINDOWS_CE_GUI\",\n  10: \"EFI_APPLICATION\", 11: \"EFI_BOOT_SERVICE_DRIVER\",\n  12: \"EFI_RUNTIME_DRIVER\", 13: \"EFI_ROM\", 14: \"XBOX\", 16: \"WINDOWS_BOOT_APPLICATION\",\n};\n\nconst SECTION_CHARS = [\n  [0x00000008, \"TYPE_NO_PAD\"],\n  [0x00000020, \"CNT_CODE\"],\n  [0x00000040, \"CNT_INITIALIZED_DATA\"],\n  [0x00000080, \"CNT_UNINITIALIZED_DATA\"],\n  [0x00000100, \"LNK_OTHER\"],\n  [0x00000200, \"LNK_INFO\"],\n  [0x00000800, \"LNK_REMOVE\"],\n  [0x00001000, \"LNK_COMDAT\"],\n  [0x00008000, \"GPREL\"],\n  [0x00020000, \"MEM_PURGEABLE\"],\n  [0x00040000, \"MEM_LOCKED\"],\n  [0x00080000, \"MEM_PRELOAD\"],\n  [0x01000000, \"LNK_NRELOC_OVFL\"],\n  [0x02000000, \"MEM_DISCARDABLE\"],\n  [0x04000000, \"MEM_NOT_CACHED\"],\n  [0x08000000, \"MEM_NOT_PAGED\"],\n  [0x10000000, \"MEM_SHARED\"],\n  [0x20000000, \"MEM_EXECUTE\"],\n  [0x40000000, \"MEM_READ\"],\n  [0x80000000, \"MEM_WRITE\"],\n];\n\nfunction decodeFlags(value, table) {\n  const out = [];\n  for (const [bit, name] of table) {\n    if (value & bit) out.push(name);\n  }\n  return out;\n}\n\nfunction parsePe(buf, path) {\n  if (buf.length < 0x40) throw new Error(\"file too small to be PE\");\n  if (buf.readUInt16LE(0) !== 0x5a4d) throw new Error(\"not a PE file (missing MZ signature)\");\n\n  const peOffset = buf.readUInt32LE(0x3c);\n  if (peOffset + 4 > buf.length) throw new Error(\"invalid e_lfanew (PE header offset)\");\n  if (buf.readUInt32LE(peOffset) !== 0x00004550) throw new Error(\"not a PE file (missing PE\\\\0\\\\0 signature)\");\n\n  // COFF File Header starts 4 bytes after PE signature\n  const coff = peOffset + 4;\n  const machineCode = buf.readUInt16LE(coff);\n  const numberOfSections = buf.readUInt16LE(coff + 2);\n  const timestamp = buf.readUInt32LE(coff + 4);\n  const optionalHeaderSize = buf.readUInt16LE(coff + 16);\n  const characteristicsValue = buf.readUInt16LE(coff + 18);\n\n  // Optional Header starts right after COFF header (28 bytes)\n  const opt = coff + 20;\n  const magic = optionalHeaderSize >= 2 ? buf.readUInt16LE(opt) : 0;\n  const is64 = magic === 0x020b;\n  const is32 = magic === 0x010b;\n  if (!is32 && !is64) throw new Error(\"unknown optional header magic: 0x\" + magic.toString(16));\n\n  const entryPoint = buf.readUInt32LE(opt + 16);\n  const imageBase = is64\n    ? buf.readBigUInt64LE(opt + 24).toString()\n    : String(buf.readUInt32LE(opt + 28));\n  const sectionAlignment = buf.readUInt32LE(opt + 32);\n  const fileAlignment = buf.readUInt32LE(opt + 36);\n  const subsystemOffset = is64 ? opt + 68 : opt + 68; // same offset in both\n  const subsystemCode = buf.readUInt16LE(subsystemOffset);\n  const dllCharsValue = buf.readUInt16LE(subsystemOffset + 2);\n\n  // Section table begins immediately after optional header\n  const sectionTable = coff + 20 + optionalHeaderSize;\n  const sections = [];\n  for (let i = 0; i < numberOfSections; i++) {\n    const base = sectionTable + i * 40;\n    if (base + 40 > buf.length) throw new Error(\"section table truncated\");\n    const nameBytes = buf.subarray(base, base + 8);\n    const nameEnd = nameBytes.indexOf(0);\n    const name = nameBytes.subarray(0, nameEnd === -1 ? 8 : nameEnd).toString(\"ascii\");\n    const virtualSize = buf.readUInt32LE(base + 8);\n    const virtualAddress = buf.readUInt32LE(base + 12);\n    const rawSize = buf.readUInt32LE(base + 16);\n    const rawOffset = buf.readUInt32LE(base + 20);\n    const charValue = buf.readUInt32LE(base + 36);\n    sections.push({\n      name,\n      virtualAddress,\n      virtualSize,\n      rawSize,\n      rawOffset,\n      characteristics: decodeFlags(charValue, SECTION_CHARS),\n    });\n  }\n\n  const fileChars = decodeFlags(characteristicsValue, FILE_CHARS);\n  const isDll = fileChars.includes(\"DLL\");\n\n  return {\n    path,\n    machine: MACHINES[machineCode] || (\"UNKNOWN_0x\" + machineCode.toString(16)),\n    machineCode,\n    numberOfSections,\n    timestamp,\n    timestampIso: timestamp > 0 ? new Date(timestamp * 1000).toISOString() : \"\",\n    characteristics: fileChars,\n    optionalHeaderMagic: is64 ? \"PE32+\" : \"PE32\",\n    subsystem: SUBSYSTEMS[subsystemCode] || (\"UNKNOWN_\" + subsystemCode),\n    dllCharacteristics: decodeFlags(dllCharsValue, DLL_CHARS),\n    entryPoint,\n    imageBase,\n    sectionAlignment,\n    fileAlignment,\n    sections,\n    isDll,\n    isExe: !isDll && fileChars.includes(\"EXECUTABLE_IMAGE\"),\n  };\n}\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const { path } = JSON.parse(raw || \"{}\");\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n\n      const buf = readFileSync(path);\n      const result = parsePe(buf, path);\n      process.stdout.write(JSON.stringify(result));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "strings-extract",
+      "version": "0.1.0",
+      "description": "Extract printable strings from a binary file, with optional minimum length and filter.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "Proprietary",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system strings binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 10000
+      },
+      "tags": [
+        "strings",
+        "binary",
+        "reverse-engineering"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minLength": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 255
+        },
+        "contains": {
+          "type": "string",
+          "description": "Optional substring filter; only strings containing this value are returned."
+        },
+        "limit": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "count",
+        "strings"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "count": {
+          "type": "number"
+        },
+        "strings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const input = JSON.parse(raw || \"{}\");\n      const path = input.path;\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n\n      const minLength = Number.isFinite(input.minLength) ? Math.max(1, Math.min(255, input.minLength)) : 4;\n      const contains = typeof input.contains === \"string\" && input.contains.length > 0 ? input.contains : null;\n      const limit = Number.isFinite(input.limit) ? Math.max(1, Math.min(100000, input.limit)) : 10000;\n\n      const r = spawnSync(\"strings\", [\"-n\", String(minLength), \"--\", path], {\n        encoding: \"utf8\", timeout: 8000, maxBuffer: 64 * 1024 * 1024\n      });\n      if (r.error) throw new Error(\"strings failed: \" + r.error.message);\n      if (r.status !== 0) {\n        const err = String(r.stderr || \"\").trim();\n        throw new Error(\"strings exit \" + r.status + (err ? \": \" + err : \"\"));\n      }\n\n      let all = r.stdout.split(/\\r?\\n/).filter((s) => s.length > 0);\n      if (contains !== null) all = all.filter((s) => s.includes(contains));\n      const truncated = all.length > limit;\n      const strings = truncated ? all.slice(0, limit) : all;\n\n      process.stdout.write(JSON.stringify({ path, count: strings.length, strings, truncated }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "summarize-failures-by-ip",
+      "version": "0.1.0",
+      "description": "Count failed authentication events per source IP, sorted descending.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [],
+      "risk": "low",
+      "trust": "community",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "MIT",
+        "version": "0.1.0",
+        "modifications": []
+      },
+      "maintainer": "SecStreet",
+      "tags": [
+        "auth",
+        "log",
+        "aggregation",
+        "defensive"
+      ],
+      "category": "defensive"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "events"
+      ],
+      "properties": {
+        "events": {
+          "type": "array"
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "summary"
+      ],
+      "properties": {
+        "summary": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "ip",
+              "count"
+            ],
+            "properties": {
+              "ip": {
+                "type": "string"
+              },
+              "count": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nlet raw = \"\";\nprocess.stdin.on(\"data\", (d) => (raw += d.toString()));\nprocess.stdin.on(\"end\", () => {\n  try {\n    const { events } = JSON.parse(raw || \"{}\");\n    if (!Array.isArray(events)) throw new Error(\"input.events must be an array\");\n    const counts = new Map();\n    for (const e of events) {\n      if (!e || typeof e.ip !== \"string\") continue;\n      counts.set(e.ip, (counts.get(e.ip) ?? 0) + 1);\n    }\n    const summary = [...counts.entries()]\n      .map(([ip, count]) => ({ ip, count }))\n      .sort((a, b) => b.count - a.count || a.ip.localeCompare(b.ip));\n    process.stdout.write(JSON.stringify({ summary }));\n  } catch (err) {\n    process.stderr.write(String(err && err.message ? err.message : err));\n    process.exit(1);\n  }\n});\n"
+  },
+  {
+    "manifest": {
+      "name": "uname-info",
+      "version": "0.1.0",
+      "description": "Return system information by wrapping the uname command.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "MIT",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system uname binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "system",
+        "recon",
+        "linux"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "sysname",
+        "release",
+        "machine",
+        "raw"
+      ],
+      "properties": {
+        "sysname": {
+          "type": "string"
+        },
+        "release": {
+          "type": "string"
+        },
+        "machine": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "string"
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const r = spawnSync(\"uname\", [\"-a\"], { encoding: \"utf8\", timeout: 4000 });\n      if (r.error || r.status !== 0) {\n        throw new Error(\"uname unavailable: \" + (r.error ? r.error.message : \"exit \" + r.status));\n      }\n      const rawOut = r.stdout.trim();\n      const parts = rawOut.split(/\\s+/);\n      process.stdout.write(JSON.stringify({\n        sysname: parts[0] || \"\",\n        release: parts[2] || \"\",\n        machine: parts[parts.length - 1] || \"\",\n        raw: rawOut\n      }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\n\nmain();\n"
+  },
+  {
+    "manifest": {
+      "name": "xxd-hexdump",
+      "version": "0.1.0",
+      "description": "Produce a hex dump of a file with optional byte offset and length window.",
+      "language": "javascript",
+      "entrypoint": "index.js",
+      "inputSchema": "input.schema.json",
+      "outputSchema": "output.schema.json",
+      "dependencies": [],
+      "os": [
+        "linux",
+        "darwin"
+      ],
+      "permissions": [
+        "subprocess",
+        "filesystem:read"
+      ],
+      "risk": "low",
+      "trust": "professional",
+      "provenance": {
+        "sourceRepo": "https://github.com/SecStreet/SecStreet",
+        "sourceAuthor": "SecStreet",
+        "license": "Proprietary",
+        "version": "0.1.0",
+        "modifications": [
+          "wraps system xxd binary; parsing implemented in SecStreet"
+        ]
+      },
+      "maintainer": "SecStreet",
+      "execution": {
+        "timeoutMs": 5000
+      },
+      "tags": [
+        "hex",
+        "binary",
+        "analysis"
+      ],
+      "category": "neutral"
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "offset": {
+          "type": "number",
+          "minimum": 0
+        },
+        "length": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 65536
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "path",
+        "offset",
+        "length",
+        "lines"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "number"
+        },
+        "length": {
+          "type": "number"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "offset",
+              "hex",
+              "ascii"
+            ],
+            "properties": {
+              "offset": {
+                "type": "string"
+              },
+              "hex": {
+                "type": "string"
+              },
+              "ascii": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrypointCode": "#!/usr/bin/env node\nimport { spawnSync } from \"node:child_process\";\n\n// xxd plain output: \"00000000: 7f45 4c46 0201 0100 0000 0000 0000 0000  .ELF............\"\nconst LINE_RE = /^([0-9a-fA-F]+):\\s+((?:[0-9a-fA-F]{2,4}\\s*)+)\\s+(.*)$/;\n\nfunction parseXxd(text) {\n  const out = [];\n  for (const line of text.split(/\\r?\\n/)) {\n    if (!line) continue;\n    const m = LINE_RE.exec(line);\n    if (!m) continue;\n    out.push({\n      offset: m[1],\n      hex: m[2].replace(/\\s+/g, \" \").trim(),\n      ascii: m[3]\n    });\n  }\n  return out;\n}\n\nfunction main() {\n  let raw = \"\";\n  process.stdin.on(\"data\", (d) => (raw += d.toString()));\n  process.stdin.on(\"end\", () => {\n    try {\n      const input = JSON.parse(raw || \"{}\");\n      const path = input.path;\n      if (typeof path !== \"string\" || !path) throw new Error(\"input.path must be a non-empty string\");\n      if (path.startsWith(\"-\")) throw new Error(\"input.path must not start with '-'\");\n\n      const offset = Number.isFinite(input.offset) ? Math.max(0, input.offset) : 0;\n      const length = Number.isFinite(input.length) ? Math.max(1, Math.min(65536, input.length)) : 512;\n\n      const r = spawnSync(\"xxd\", [\"-s\", String(offset), \"-l\", String(length), \"--\", path], {\n        encoding: \"utf8\", timeout: 4000\n      });\n      if (r.error) throw new Error(\"xxd failed: \" + r.error.message);\n      if (r.status !== 0) {\n        const err = String(r.stderr || \"\").trim();\n        throw new Error(\"xxd exit \" + r.status + (err ? \": \" + err : \"\"));\n      }\n\n      const lines = parseXxd(r.stdout);\n      process.stdout.write(JSON.stringify({ path, offset, length, lines }));\n    } catch (err) {\n      process.stderr.write(String(err && err.message ? err.message : err));\n      process.exit(1);\n    }\n  });\n}\nmain();\n"
+  }
+]

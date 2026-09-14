@@ -1,12 +1,4 @@
 name = "secstreet-web"
 compatibility_date = "2026-09-14"
-
-[env.production]
-# Pages project name. Change if you have a different one.
-# pages_project_name = "secstreet"
-
-# Static files ship to Cloudflare Pages via `wrangler pages deploy`.
-# The library JSON API runs on Cloudflare Workers, reading from Supabase.
-
-# Cloudflare account ID. Used so wrangler does not look it up on every call.
+pages_build_output_dir = "deploy"
 account_id = "2599b76448d6ea9a6241b1c58af2a46c"
