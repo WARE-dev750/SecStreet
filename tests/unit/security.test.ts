@@ -60,7 +60,7 @@ describe("trust store", () => {
   it("adds keys and trusts them per tier", () => {
     const pair = generateEd25519KeyPair();
     const keyId = keyIdFromPublicKey(pair.publicKeyPem);
-    const store = new TrustStore();
+    const store = TrustStore.fromJSON("{}");
     store.addKey(keyId, pair.publicKeyPem);
     store.trustKey("verified", keyId);
     expect(store.isTrustedFor("verified", keyId)).toBe(true);
@@ -69,7 +69,7 @@ describe("trust store", () => {
   });
 
   it("refuses to trust an unknown key", () => {
-    const store = new TrustStore();
+    const store = TrustStore.fromJSON("{}");
     expect(() => store.trustKey("verified", "deadbeef")).toThrow(/unknown keyId/);
   });
 });

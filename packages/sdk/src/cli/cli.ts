@@ -199,7 +199,7 @@ async function main(): Promise<void> {
   if (cmd === "keys") {
     const p = await openProjectOrFail();
     const store = await p.loadTrustStore();
-    const data = store.toJSON();
+    const data = store.toData();
     const tierOf: Record<string, string[]> = {};
     for (const [tier, ids] of Object.entries(data.tiers)) {
       for (const id of ids ?? []) {

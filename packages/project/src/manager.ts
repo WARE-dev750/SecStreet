@@ -80,13 +80,15 @@ export class Project {
     await this.storage.write(MANIFEST, JSON.stringify(this.manifest, null, 2) + "\n");
   }
 
-  // TrustStore is still file-based; migrating it to Storage is a later step.
+  // Trust store routes through Storage like everything else. Keys map to
+  // the trust.json file under .secstreet/ regardless of backend.
   async loadTrustStore(): Promise<TrustStore> {
-    return TrustStore.load(this.trustPath);
+    const raw = await this.storage.read(".secstreet/trust.json");
+    return TrustStore.fromJSON(raw ?? "{}");
   }
 
   async saveTrustStore(store: TrustStore): Promise<void> {
-    await store.save(this.trustPath);
+    await this.storage.write(".secstreet/trust.json", store.toJSON());
   }
 
   async install(
