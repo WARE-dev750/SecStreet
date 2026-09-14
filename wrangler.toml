@@ -7,3 +7,6 @@ compatibility_date = "2026-09-14"
 
 # Static files ship to Cloudflare Pages via `wrangler pages deploy`.
 # The library JSON API runs on Cloudflare Workers, reading from Supabase.
+
+# Cloudflare account ID. Used so wrangler does not look it up on every call.
+account_id = "2599b76448d6ea9a6241b1c58af2a46c"
