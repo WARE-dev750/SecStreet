@@ -100,16 +100,6 @@
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
 <script src="/icons.js"></script>
 <script src="/canvas.js"></script>
-<script src="/canvas/state.js"></script>
-<script src="/canvas/files.js"></script>
-<script src="/canvas/skills.js"></script>
-<script src="/canvas/layout.js"></script>
-<script src="/canvas/render.js"></script>
-<script src="/canvas/drag.js"></script>
-<script src="/canvas/collapse.js"></script>
-<script src="/canvas/panzoom.js"></script>
-<script src="/canvas/context-menu.js"></script>
-<script src="/canvas/ai.js"></script>
-<script src="/canvas/index.js"></script>
+<script src="/workspace-canvas.js"></script>
 <script src="/app.js"></script>
 </body></html>
