@@ -111,7 +111,12 @@ async function walkTree(root: string, rel: string): Promise<FileNode[]> {
 
 function send(res: ServerResponse, status: number, body: unknown, contentType = "application/json"): void {
   const payload = typeof body === "string" ? body : JSON.stringify(body);
-  res.writeHead(status, { "content-type": contentType });
+  res.writeHead(status, {
+    "content-type": contentType,
+    "cache-control": "no-store, no-cache, must-revalidate",
+    "pragma": "no-cache",
+    "expires": "0",
+  });
   res.end(payload);
 }
 
