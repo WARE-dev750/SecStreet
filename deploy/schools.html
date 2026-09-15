@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>For Schools — SecStreet</title>
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.20/index.min.css">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-soft: #f7f8fa;
+    --surface: #ffffff;
+    --surface-2: #f1f3f6;
+    --border: #e6e8ec;
+    --border-hi: #d5d8de;
+    --ink: #14161a;
+    --ink-2: #4a4f57;
+    --ink-3: #80868f;
+    --ink-4: #b3b8c0;
+    --blue: #2563eb;
+    --blue-soft: #eef3fe;
+    --green: #059669;
+    --green-soft: #ecfdf5;
+    --amber: #d97706;
+    --amber-soft: #fef7ec;
+    --violet: #7c3aed;
+    --violet-soft: #f5f0fe;
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @supports (font-variation-settings: normal) { :root { --font-sans: "InterVariable", "Inter", sans-serif; } }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); font-size: 15px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv02","cv03","cv04","cv11";
+  }
+  a { color: inherit; text-decoration: none; }
+  .container { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
+
+  /* nav */
+  nav.top {
+    position: sticky; top: 0; z-index: 50;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  nav.top .row { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .brand { font-weight: 600; letter-spacing: -.01em; font-size: 15px; display: inline-flex; align-items: center; gap: 10px; color: var(--ink); }
+  .brand .dot { width: 8px; height: 8px; background: var(--blue); border-radius: 2px; }
+  .brand .sub { font-weight: 400; color: var(--ink-3); font-size: 13px; margin-left: 4px; }
+  .nav-links { display: flex; gap: 26px; font-size: 14px; color: var(--ink-2); }
+  .nav-links a { transition: color .15s; }
+  .nav-links a:hover, .nav-links a.active { color: var(--ink); }
+  .nav-cta {
+    background: var(--ink); color: #fff;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13.5px; font-weight: 500;
+    transition: opacity .15s;
+  }
+  .nav-cta:hover { opacity: 0.88; }
+
+  /* hero */
+  .hero { padding: 88px 0 64px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--blue); letter-spacing: 0.02em;
+    margin-bottom: 26px;
+    padding: 5px 12px;
+    border: 1px solid #d6e0fb;
+    background: var(--blue-soft);
+    border-radius: 100px;
+  }
+  .eyebrow .dot { width: 6px; height: 6px; background: var(--blue); border-radius: 50%; }
+  h1.hero-title {
+    font-size: 52px; font-weight: 600; letter-spacing: -.03em;
+    line-height: 1.08; margin-bottom: 22px;
+    color: var(--ink);
+    max-width: 820px;
+  }
+  .hero-sub {
+    font-size: 18px; line-height: 1.6; color: var(--ink-2);
+    max-width: 640px; margin-bottom: 36px;
+    letter-spacing: -.005em;
+  }
+  .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .btn-primary {
+    background: var(--blue); color: #fff;
+    padding: 12px 22px; border-radius: 9px; font-size: 14.5px; font-weight: 500;
+    border: none; cursor: pointer; font-family: var(--font-sans);
+    transition: background .15s, transform .1s;
+  }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-primary:active { transform: translateY(1px); }
+  .btn-ghost {
+    padding: 12px 22px; border-radius: 9px; font-size: 14.5px;
+    border: 1px solid var(--border-hi); color: var(--ink-2);
+    background: #fff; cursor: pointer; font-family: var(--font-sans);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .btn-ghost:hover { background: var(--surface-2); color: var(--ink); }
+
+  /* hero card - classroom mockup */
+  .hero-visual {
+    margin-top: 56px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg-soft);
+    overflow: hidden;
+    box-shadow: 0 20px 60px -30px rgba(20, 22, 26, 0.15);
+  }
+  .hv-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: #fff;
+  }
+  .hv-bar .d { width: 10px; height: 10px; border-radius: 50%; background: #e6e8ec; }
+  .hv-bar .url {
+    margin-left: 14px; font-family: var(--font-mono); font-size: 12px;
+    color: var(--ink-3); background: var(--surface-2);
+    padding: 4px 12px; border-radius: 6px;
+  }
+  .hv-body { display: grid; grid-template-columns: 220px 1fr; min-height: 340px; }
+  @media (max-width: 800px) { .hv-body { grid-template-columns: 1fr; } }
+  .hv-side { background: #fff; border-right: 1px solid var(--border); padding: 18px 0; }
+  .hv-side .h {
+    font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;
+    padding: 0 18px 10px;
+  }
+  .hv-side .row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 18px; font-size: 13px; color: var(--ink-2);
+    border-left: 2px solid transparent;
+  }
+  .hv-side .row.active {
+    background: var(--blue-soft); border-left-color: var(--blue); color: var(--blue);
+    font-weight: 500;
+  }
+  .hv-side .row .ico {
+    width: 18px; height: 18px; border-radius: 4px; background: var(--surface-2);
+    display: grid; place-items: center; font-size: 10px;
+  }
+  .hv-side .row.active .ico { background: #fff; color: var(--blue); }
+  .hv-main { padding: 28px 32px; background: #fff; }
+  .hv-main h3 { font-size: 18px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 6px; }
+  .hv-main .meta {
+    font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);
+    margin-bottom: 20px;
+  }
+  .lesson {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .lesson .lh {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .lesson .lh .pill {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 3px 8px; border-radius: 4px;
+  }
+  .lesson .lh .pill.begin { background: var(--green-soft); color: var(--green); }
+  .lesson .lh .pill.try { background: var(--amber-soft); color: var(--amber); }
+  .lesson .lh .pill.think { background: var(--violet-soft); color: var(--violet); }
+  .lesson .lh .t { font-weight: 500; color: var(--ink); }
+  .lesson .lb { padding: 16px; font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-2); line-height: 1.7; }
+  .lesson .lb .c { color: var(--ink-4); }
+  .lesson .lb .k { color: var(--blue); }
+  .lesson .lb .s { color: var(--green); }
+
+  /* sections */
+  section.band { padding: 80px 0; border-top: 1px solid var(--border); }
+  section.band h2 {
+    font-size: 30px; font-weight: 600; letter-spacing: -.02em;
+    margin-bottom: 12px; line-height: 1.15; color: var(--ink);
+  }
+  section.band p.lead {
+    font-size: 16px; color: var(--ink-2); max-width: 660px;
+    margin-bottom: 44px; line-height: 1.6;
+  }
+
+  /* three audience columns */
+  .aud-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .aud-grid { grid-template-columns: 1fr; } }
+  .aud {
+    padding: 28px 26px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .aud .ico {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 18px; margin-bottom: 16px;
+  }
+  .aud.student .ico { background: var(--blue-soft); color: var(--blue); }
+  .aud.teacher .ico { background: var(--green-soft); color: var(--green); }
+  .aud.school .ico { background: var(--amber-soft); color: var(--amber); }
+  .aud h3 { font-size: 17px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 10px; }
+  .aud p { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+  .aud ul { list-style: none; padding: 0; margin-top: 14px; }
+  .aud li {
+    font-size: 13px; color: var(--ink-2); padding: 5px 0;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .aud li::before { content: ""; width: 5px; height: 5px; background: var(--ink-4); border-radius: 50%; margin-top: 9px; flex-shrink: 0; }
+  .aud.student li::before { background: var(--blue); }
+  .aud.teacher li::before { background: var(--green); }
+  .aud.school li::before { background: var(--amber); }
+
+  /* safe by design */
+  .safe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .safe-grid { grid-template-columns: 1fr; } }
+  .safe-item {
+    padding: 24px 26px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-soft);
+  }
+  .safe-item h4 {
+    font-size: 14.5px; font-weight: 600; margin-bottom: 8px; letter-spacing: -.005em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .safe-item h4 .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 0 3px var(--green-soft);
+  }
+  .safe-item p { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+
+  /* lesson grid */
+  .lesson-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .lesson-grid { grid-template-columns: 1fr; } }
+  .lc {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    transition: border-color .15s, transform .15s;
+  }
+  .lc:hover { border-color: var(--border-hi); }
+  .lc .top {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--ink-3); background: var(--bg-soft);
+  }
+  .lc .top .lvl {
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .lc .top .lvl.intro { background: var(--green-soft); color: var(--green); }
+  .lc .top .lvl.mid { background: var(--blue-soft); color: var(--blue); }
+  .lc .top .lvl.adv { background: var(--violet-soft); color: var(--violet); }
+  .lc .body { padding: 20px; }
+  .lc h4 { font-size: 15.5px; font-weight: 600; margin-bottom: 8px; letter-spacing: -.005em; }
+  .lc p { font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+  .lc .stack { display: flex; gap: 6px; margin-top: 14px; }
+  .lc .chip {
+    font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3);
+    padding: 3px 9px; border: 1px solid var(--border); border-radius: 999px;
+  }
+
+  /* cta block */
+  .cta-block {
+    padding: 64px 40px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: linear-gradient(180deg, #fff 0%, var(--bg-soft) 100%);
+    text-align: center;
+    box-shadow: 0 20px 60px -40px rgba(20, 22, 26, 0.15);
+  }
+  .cta-block h2 {
+    font-size: 32px; font-weight: 600; letter-spacing: -.02em;
+    margin-bottom: 14px; color: var(--ink);
+  }
+  .cta-block p {
+    font-size: 16px; color: var(--ink-2); max-width: 520px;
+    margin: 0 auto 28px; line-height: 1.6;
+  }
+  .cta-form { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; max-width: 520px; margin: 0 auto; }
+  .cta-form input {
+    flex: 1; min-width: 220px;
+    padding: 12px 16px; border-radius: 9px;
+    border: 1px solid var(--border-hi); background: #fff;
+    color: var(--ink); font-family: var(--font-sans); font-size: 14px;
+    outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  .cta-form input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+  .cta-form button {
+    background: var(--blue); color: #fff; border: none;
+    padding: 12px 24px; border-radius: 9px; font-size: 14.5px; font-weight: 500;
+    cursor: pointer; font-family: var(--font-sans);
+    transition: background .15s;
+  }
+  .cta-form button:hover { background: #1d4ed8; }
+  .cta-msg { font-family: var(--font-mono); font-size: 12.5px; color: var(--green); margin-top: 14px; min-height: 18px; }
+  .cta-note { font-size: 12.5px; color: var(--ink-3); margin-top: 10px; }
+
+  /* footer */
+  footer {
+    padding: 44px 0 60px;
+    border-top: 1px solid var(--border);
+    font-size: 13px; color: var(--ink-3);
+  }
+  footer .row { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+  footer a { color: var(--ink-2); margin-left: 20px; }
+  footer a:hover { color: var(--ink); }
+</style>
+</head><body>
+
+<nav class="top">
+  <div class="container row">
+    <a class="brand" href="/"><span class="dot"></span>SecStreet <span class="sub">/ for schools</span></a>
+    <div class="nav-links">
+      <a href="#students">Students</a>
+      <a href="#teachers">Teachers</a>
+      <a href="#lessons">Lessons</a>
+      <a href="#safety">Safety</a>
+    </div>
+    <a class="nav-cta" href="#contact">Bring it to your school</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container">
+    <div class="eyebrow"><span class="dot"></span>For schools · districts · CTE programs</div>
+    <h1 class="hero-title">
+      A safe place for students<br>to learn security.
+    </h1>
+    <p class="hero-sub">
+      Hands-on labs that run entirely on school hardware. No internet required.
+      Nothing a student does can leave the classroom. Built for teachers who
+      have never taught security before.
+    </p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#contact">Talk to us</a>
+      <a class="btn-ghost" href="#lessons">See sample lessons</a>
+    </div>
+
+    <div class="hero-visual">
+      <div class="hv-bar">
+        <span class="d"></span><span class="d"></span><span class="d"></span>
+        <span class="url">secstreet.local / classroom</span>
+      </div>
+      <div class="hv-body">
+        <aside class="hv-side">
+          <div class="h">Class</div>
+          <div class="row active"><span class="ico">1</span> Welcome to logs</div>
+          <div class="row"><span class="ico">2</span> Reading auth events</div>
+          <div class="row"><span class="ico">3</span> Finding failed logins</div>
+          <div class="row"><span class="ico">4</span> Counting by source</div>
+          <div class="row"><span class="ico">5</span> What is a chain?</div>
+          <div class="h" style="margin-top:16px">Resources</div>
+          <div class="row"><span class="ico">·</span> Slide notes</div>
+          <div class="row"><span class="ico">·</span> Answer key</div>
+          <div class="row"><span class="ico">·</span> Progress</div>
+        </aside>
+        <div class="hv-main">
+          <h3>Lesson 1 · Welcome to logs</h3>
+          <div class="meta">Beginner · 30 minutes · no prior experience</div>
+
+          <div class="lesson">
+            <div class="lh"><span class="pill begin">Learn</span><span class="t">A log is a diary a computer keeps.</span></div>
+            <div class="lb">
+              <span class="c">// every time a user logs in, the computer writes a line</span><br>
+              Jan 10 12:00:01 host sshd: Accepted password for alice<br>
+              Jan 10 12:00:02 host sshd: Failed password for bob
+            </div>
+          </div>
+
+          <div class="lesson">
+            <div class="lh"><span class="pill try">Try it</span><span class="t">Read the log together as a class.</span></div>
+            <div class="lb">
+              <span class="k">→</span> open the file in the editor<br>
+              <span class="k">→</span> how many users signed in?<br>
+              <span class="k">→</span> how many failed?
+            </div>
+          </div>
+
+          <div class="lesson">
+            <div class="lh"><span class="pill think">Think about it</span><span class="t">Why does this matter?</span></div>
+            <div class="lb">
+              <span class="c">// Discussion prompt</span><br>
+              If a stranger tried to sign in fifty times, where would you look?
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="band" id="students">
+  <div class="container">
+    <h2>Three people care about this.</h2>
+    <p class="lead">
+      Students want to try things without breaking anything. Teachers want
+      lesson plans that just work. Schools want it safe, private, and easy to
+      support. All three are already handled.
+    </p>
+    <div class="aud-grid">
+      <div class="aud student">
+        <div class="ico">◇</div>
+        <h3>Students</h3>
+        <p>A sandbox that resets every time. Try something wrong, nothing breaks. Try something right, they see it happen.</p>
+        <ul>
+          <li>Real tools, safe practice</li>
+          <li>Reset button on every lab</li>
+          <li>No internet needed</li>
+          <li>Clear progress, no gamification</li>
+        </ul>
+      </div>
+      <div class="aud teacher">
+        <div class="ico">▤</div>
+        <h3>Teachers</h3>
+        <p>Lesson plans with slides, answer keys, and a way to see who is stuck. No security background needed to teach it.</p>
+        <ul>
+          <li>Ready-to-run lessons</li>
+          <li>Answer keys included</li>
+          <li>Progress visible per student</li>
+          <li>Fully offline</li>
+        </ul>
+      </div>
+      <div class="aud school">
+        <div class="ico">▣</div>
+        <h3>Schools &amp; districts</h3>
+        <p>One install for the whole lab. No cloud account, no data leaving the building, no per-student subscription.</p>
+        <ul>
+          <li>Installs on existing lab PCs</li>
+          <li>Nothing leaves the network</li>
+          <li>Works on Chromebooks and Linux</li>
+          <li>Local support, no vendor lock-in</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="lessons">
+  <div class="container">
+    <h2>Sample lessons.</h2>
+    <p class="lead">
+      A curriculum, not a toolbox. Each lesson builds on the one before it.
+      Everything runs locally. Everything has an answer key.
+    </p>
+    <div class="lesson-grid">
+      <div class="lc">
+        <div class="top"><span>Lesson 1 · Logs</span><span class="lvl intro">Intro</span></div>
+        <div class="body">
+          <h4>What is a log?</h4>
+          <p>Read a system log. Spot the difference between a successful sign-in and a failed one. Talk about what a computer remembers.</p>
+          <div class="stack"><span class="chip">30 min</span><span class="chip">no code</span><span class="chip">discussion</span></div>
+        </div>
+      </div>
+      <div class="lc">
+        <div class="top"><span>Lesson 2 · Filters</span><span class="lvl intro">Intro</span></div>
+        <div class="body">
+          <h4>Only the interesting lines</h4>
+          <p>Take a noisy log and reduce it to just the failed attempts. Students learn that finding a signal is a skill.</p>
+          <div class="stack"><span class="chip">45 min</span><span class="chip">guided</span><span class="chip">hands-on</span></div>
+        </div>
+      </div>
+      <div class="lc">
+        <div class="top"><span>Lesson 3 · Counts</span><span class="lvl mid">Middle</span></div>
+        <div class="body">
+          <h4>Who is trying the most?</h4>
+          <p>Count failures by IP. First place students see a pattern emerge from raw data. Conversation about what “suspicious” means.</p>
+          <div class="stack"><span class="chip">45 min</span><span class="chip">analysis</span><span class="chip">ethics</span></div>
+        </div>
+      </div>
+      <div class="lc">
+        <div class="top"><span>Lesson 4 · Chains</span><span class="lvl mid">Middle</span></div>
+        <div class="body">
+          <h4>Connect two steps together</h4>
+          <p>Feed the output of one tool into another. Students see how professional analysts build small pipelines instead of doing everything by hand.</p>
+          <div class="stack"><span class="chip">60 min</span><span class="chip">workflow</span><span class="chip">visual</span></div>
+        </div>
+      </div>
+      <div class="lc">
+        <div class="top"><span>Lesson 5 · Binary basics</span><span class="lvl mid">Middle</span></div>
+        <div class="body">
+          <h4>What is inside a program?</h4>
+          <p>Read the header of a real binary. Architecture, entry point, sections. Gentle first look at how programs are built.</p>
+          <div class="stack"><span class="chip">60 min</span><span class="chip">files</span><span class="chip">no network</span></div>
+        </div>
+      </div>
+      <div class="lc">
+        <div class="top"><span>Lesson 6 · Building one</span><span class="lvl adv">Advanced</span></div>
+        <div class="body">
+          <h4>Write your own parser</h4>
+          <p>Students write a small parser for a log format of their choice. First real code they ship. Published privately to the class.</p>
+          <div class="stack"><span class="chip">90 min</span><span class="chip">code</span><span class="chip">project</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="safety">
+  <div class="container">
+    <h2>Safe by design.</h2>
+    <p class="lead">
+      Every decision we've made for the schools program starts with the same
+      question: what happens if a student does the unexpected?
+    </p>
+    <div class="safe-grid">
+      <div class="safe-item">
+        <h4><span class="dot"></span>No internet required</h4>
+        <p>Lessons run entirely on the school's own network. Nothing a student does reaches outside the classroom. No cloud account needed.</p>
+      </div>
+      <div class="safe-item">
+        <h4><span class="dot"></span>Sandboxed, reset-able labs</h4>
+        <p>Each lesson runs in an isolated environment. If a student breaks something, they press Reset. It comes back exactly as it started.</p>
+      </div>
+      <div class="safe-item">
+        <h4><span class="dot"></span>Nothing leaves the machine</h4>
+        <p>Student work is stored locally on the school's own machines. No analytics, no telemetry, no data sent to us. FERPA and COPPA-friendly by default.</p>
+      </div>
+      <div class="safe-item">
+        <h4><span class="dot"></span>Teacher-led controls</h4>
+        <p>The teacher decides what capabilities are available in a lesson. Students cannot reach beyond the current lab, even if they try.</p>
+      </div>
+      <div class="safe-item">
+        <h4><span class="dot"></span>No offensive tooling</h4>
+        <p>School-level labs are defensive and educational. Offensive security is taught as a concept, not practiced as a tool. No scanners, no exploitation, no C2.</p>
+      </div>
+      <div class="safe-item">
+        <h4><span class="dot"></span>Open standards, no lock-in</h4>
+        <p>Lessons are files on disk. Capabilities follow an open spec. A district can move to another platform without losing their curriculum.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="contact">
+  <div class="container">
+    <div class="cta-block">
+      <h2>Bring it to your school.</h2>
+      <p>
+        We're working with a small number of pilot schools and CTE programs.
+        If you teach security, run a lab, or coordinate a district program,
+        we'd like to hear from you.
+      </p>
+      <form class="cta-form" onsubmit="return submitContact(event)">
+        <input type="email" id="email" placeholder="you@yourschool.edu" required autocomplete="email">
+        <button type="submit">Request a pilot</button>
+      </form>
+      <div class="cta-msg" id="ctaMsg"></div>
+      <div class="cta-note">No sales calls. One reply from a person.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container row">
+    <span>© 2026 SecStreet — proprietary, all rights reserved.</span>
+    <span>
+      <a href="/">Main site</a>
+      <a href="/library">Library</a>
+      <a href="/sandboxes.html">Sandboxes</a>
+      <a href="#contact">Contact</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+  function submitContact(e) {
+    e.preventDefault();
+    const email = document.getElementById("email").value.trim();
+    if (!email || !email.includes("@")) return false;
+    const key = "secstreet.waitlist.schools";
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch {}
+    if (!list.includes(email)) list.push(email);
+    localStorage.setItem(key, JSON.stringify(list));
+    document.getElementById("ctaMsg").textContent = "saved locally · " + list.length + " on this browser";
+    document.getElementById("email").value = "";
+    return false;
+  }
+</script>
+
+</body></html>

@@ -106,12 +106,13 @@ async function loadAuditCount() {
 
 // ===== sidebar =====
 function renderSidebar() {
-  const titles = { explorer: "Explorer", capabilities: "Capabilities", workflows: "Workflows", audit: "Audit", registry: "Registry" };
+  const titles = { explorer: "Explorer", capabilities: "Capabilities", workflows: "Workflows", structure: "Structure", audit: "Audit", registry: "Registry" };
   $("sidebarTitle").textContent = titles[state.view] || state.view;
   const body = $("sidebarBody");
   if (state.view === "explorer") body.innerHTML = renderTree(state.files, 0);
   else if (state.view === "capabilities") body.innerHTML = renderCapList();
   else if (state.view === "workflows") body.innerHTML = renderWorkflowList();
+  else if (state.view === "structure") body.innerHTML = '<div style="padding:14px;color:#6b7280;font-size:12px;line-height:1.6">Workspace structure is shown in the main area.<br><br>Every file is a box. Drag to rearrange.</div>';
   else if (state.view === "audit") renderAudit(body);
   else if (state.view === "registry") body.innerHTML = renderRegistryPanel();
   wireSidebar();
@@ -295,6 +296,29 @@ function renderTabs() {
 
 function isWorkflow(path) {
   return path.startsWith("workflows/") && path.endsWith(".json");
+}
+
+function mountWorkspaceCanvas() {
+  $("emptyState").style.display = "none";
+  $("editorHost").style.display = "none";
+  if (state.editor) state.editor.setModel(null);
+  $("editorHost").querySelectorAll(".monaco-editor").forEach((n) => { n.style.display = "none"; });
+  const ch = $("canvasHost");
+  ch.style.display = "flex";
+  ch.style.flexDirection = "column";
+  if (window.WorkspaceCanvas) {
+    window.WorkspaceCanvas.mount(ch).catch((err) => {
+      ch.innerHTML = '<div style="padding:40px;color:#c5221f;font-family:ui-monospace,monospace">Workspace canvas failed: ' + err.message + '</div>';
+    });
+  } else {
+    ch.innerHTML = '<div style="padding:40px;color:#c5221f">workspace-canvas.js not loaded</div>';
+  }
+}
+
+function unmountWorkspaceCanvas() {
+  if (window.WorkspaceCanvas) window.WorkspaceCanvas.unmount();
+  const ch = $("canvasHost");
+  if (ch) { ch.innerHTML = ""; ch.style.display = "none"; }
 }
 
 function mountCanvas(path) {
@@ -706,6 +730,8 @@ function wireUI() {
       const sidebar = $("sidebar");
       if (sidebar) sidebar.classList.remove("hidden");
       renderSidebar();
+      if (state.view === "structure") mountWorkspaceCanvas();
+      else unmountWorkspaceCanvas();
     });
   });
   const sbToggle = $("sidebarToggle");

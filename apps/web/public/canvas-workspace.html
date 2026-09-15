@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Canvas — SecStreet</title>
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.20/index.min.css">
+<link rel="stylesheet" href="/canvas-workspace.css">
+</head><body>
+
+<nav class="top">
+  <div class="container row">
+    <a class="brand" href="/"><span class="dot"></span>SecStreet</a>
+    <div class="nav-links">
+      <a href="/library">Library</a>
+      <a href="/sandboxes.html">Sandboxes</a>
+      <a href="/schools.html">For schools</a>
+      <a href="/community.html">Community</a>
+      <a href="/canvas-workspace.html" class="active">Canvas</a>
+    </div>
+    <a class="nav-cta" href="/library">Browse library</a>
+  </div>
+</nav>
+
+<div class="canvas-shell">
+  <div class="canvas-surface" id="canvasSurface">
+    <div class="canvas-world" id="canvasWorld"></div>
+  </div>
+
+  <div class="canvas-hud">
+    <div class="hud-left">
+      <span class="hud-chip" id="hudProjects">0 projects</span>
+      <span class="hud-chip" id="hudNodes">0 files</span>
+    </div>
+    <div class="hud-right">
+      <button class="hud-btn" id="hudZoomOut">−</button>
+      <span class="hud-chip" id="hudZoom">100%</span>
+      <button class="hud-btn" id="hudZoomIn">+</button>
+      <button class="hud-btn" id="hudFit">fit</button>
+      <button class="hud-btn" id="hudClear">clear</button>
+    </div>
+  </div>
+
+  <div class="canvas-hint" id="canvasHint">
+    Drop a folder or files anywhere on this page to add a project.
+  </div>
+</div>
+
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="drawer-path" id="drawerPath">—</div>
+    <button class="drawer-close" id="drawerClose">×</button>
+  </div>
+  <div class="drawer-meta" id="drawerMeta"></div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-ai">
+    <div class="ai-row">
+      <input id="aiInput" placeholder="Ask AI about this file…" autocomplete="off">
+      <button id="aiAsk">Ask</button>
+    </div>
+    <button id="aiExplain" class="ai-secondary">Explain this file</button>
+    <pre class="ai-output" id="aiOutput"></pre>
+  </div>
+</aside>
+
+<div class="dropzone" id="dropzone">
+  <div class="dropzone-inner">
+    <div class="dropzone-icon">↓</div>
+    <div class="dropzone-text">Drop folder or files</div>
+    <div class="dropzone-sub">Each drop becomes a project tile on the canvas</div>
+  </div>
+</div>
+
+<script src="/canvas-workspace.js"></script>
+</body></html>

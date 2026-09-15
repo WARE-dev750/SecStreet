@@ -34,7 +34,14 @@
     if (hasApi !== null) return hasApi;
     try {
       const r = await fetch("/api/library");
-      hasApi = r.ok;
+      const ct = r.headers.get("content-type") || "";
+      if (!r.ok || !ct.includes("application/json")) {
+        hasApi = false;
+      } else {
+        // also verify it parses as the expected shape
+        const data = await r.clone().json();
+        hasApi = typeof data === "object" && data !== null;
+      }
     } catch {
       hasApi = false;
     }
@@ -155,8 +162,9 @@
       '<div class="lib-detail">' +
         '<div class="dcrumb"><a href="/">SecStreet</a> <span class="mx-1">/</span> library <span class="mx-1">/</span> ' + m.name + '</div>' +
         '<div class="lib-title-row">' +
-          '<h1 class="mb-0">' + m.name + ' <span class="text-muted fs-6 fw-normal">@' + m.version + '</span></h1>' +
-          '<button id="installBtn" class="btn btn-primary btn-sm ms-auto"><i class="bi bi-download me-1"></i>Install to project</button>' +
+          '<h1>' + m.name + ' <span class="ver">@' + m.version + '</span></h1>' +
+          '<span class="cat-tag ' + (m.category || "neutral") + '">' + (m.category || "neutral") + '</span>' +
+          '<button id="installBtn" class="btn-install"><i class="bi bi-download me-1"></i>Install</button>' +
         '</div>' +
         '<div class="lib-install-msg" id="installMsg"></div>' +
         '<div class="ddesc">' + escapeHtml(m.description) + '</div>' +
@@ -192,6 +200,7 @@
         });
         if (r.ok) {
           btn.textContent = "Installed";
+          btn.classList.add("installed");
           msg.style.color = "var(--ok)";
           msg.textContent = "installed " + r.name + "@" + r.version + " into your project";
         } else {

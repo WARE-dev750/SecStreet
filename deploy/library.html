@@ -2,31 +2,34 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SecStreet Library</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<title>Library — SecStreet</title>
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.20/index.min.css">
 <link rel="stylesheet" href="/library.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/editor/editor.main.css">
 </head><body>
-<nav class="navbar navbar-expand navbar-light bg-white border-bottom">
-  <div class="container-fluid">
-    <a class="navbar-brand fw-semibold" href="/">
-      <span class="text-primary">■</span> SECSTREET <span class="text-muted fw-normal">/ library</span>
-    </a>
-    <div class="ms-auto d-flex gap-2">
-      <a class="btn btn-sm btn-outline-secondary" href="/">
-        <i class="bi bi-code-square me-1"></i>Workspace
-      </a>
+
+<nav class="top">
+  <div class="container row">
+    <a class="brand" href="/"><span class="dot"></span>SecStreet</a>
+    <div class="nav-links">
+      <a href="/library" class="active">Library</a>
+      <a href="/sandboxes.html">Sandboxes</a>
+      <a href="/community.html">Community</a>
+      <a href="/#how">How it works</a>
+      <a href="/#start">Get started</a>
     </div>
+    <a class="nav-cta" href="/#start">Install CLI</a>
   </div>
 </nav>
 
 <div class="lib-shell">
-  <div class="lib-left">
+  <aside class="lib-left">
     <div class="lib-header">
-      <div class="input-group input-group-sm">
-        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-        <input id="q" class="form-control border-start-0" placeholder="Search the capability library" autocomplete="off" spellcheck="false">
+      <div class="search-wrap">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>
+        <input id="q" placeholder="Search the library" autocomplete="off" spellcheck="false">
       </div>
       <div class="chip-row">
         <button class="chip active" data-cat="all">All</button>
@@ -34,20 +37,21 @@
         <button class="chip" data-cat="offensive">Offensive</button>
         <button class="chip" data-cat="neutral">Neutral</button>
       </div>
-      <div class="text-muted small mt-2" id="count" style="padding:0 16px"></div>
+      <div class="lib-count" id="count"></div>
     </div>
     <div class="lib-list" id="list">
       <div class="lib-empty">Loading…</div>
     </div>
-  </div>
-  <div class="lib-right">
+  </aside>
+  <main class="lib-right">
     <div class="lib-detail" id="detail">
-      <div class="lib-empty">
-        <i class="bi bi-box-seam fs-1 d-block mb-3 opacity-25"></i>
-        Pick a capability to inspect it.
+      <div class="lib-detail-empty">
+        <div class="empty-glyph">■</div>
+        <div class="empty-text">Pick a capability</div>
+        <div class="empty-hint">Search on the left. Click to inspect the manifest, schemas, and source.</div>
       </div>
     </div>
-  </div>
+  </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>

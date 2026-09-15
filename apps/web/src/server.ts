@@ -6,7 +6,7 @@ import { runCapability } from "@secstreet/runtime";
 import { runWorkflow } from "@secstreet/workflow";
 import { RegistryClient } from "@secstreet/service-registry";
 import { checkCompatibility } from "@secstreet/workflow";
-import { generateAdapter, scaffoldAdapter, MockProvider } from "@secstreet/ai";
+import { generateAdapter, scaffoldAdapter, MockProvider, OpenAICompatibleProvider } from "@secstreet/ai";
 import { hashJson, loadRegistry } from "@secstreet/capability";
 
 export interface WebServerOptions {
@@ -171,6 +171,34 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         const js = await readFile(join(publicDir, "canvas.js"), "utf8");
         return send(res, 200, js, "application/javascript");
       }
+      if (p === "/workspace-canvas.js") {
+        const js = await readFile(join(publicDir, "workspace-canvas.js"), "utf8");
+        return send(res, 200, js, "application/javascript");
+      }
+      if (p === "/canvas" || p === "/canvas-workspace.html") {
+        const html = await readFile(join(publicDir, "canvas-workspace.html"), "utf8");
+        return send(res, 200, html, "text/html");
+      }
+      if (p === "/canvas-workspace.css") {
+        const css = await readFile(join(publicDir, "canvas-workspace.css"), "utf8");
+        return send(res, 200, css, "text/css");
+      }
+      if (p === "/canvas-workspace.js") {
+        const js = await readFile(join(publicDir, "canvas-workspace.js"), "utf8");
+        return send(res, 200, js, "application/javascript");
+      }
+      if (p === "/canvas" || p === "/canvas-workspace.html") {
+        const html = await readFile(join(publicDir, "canvas-workspace.html"), "utf8");
+        return send(res, 200, html, "text/html");
+      }
+      if (p === "/canvas-workspace.css") {
+        const css = await readFile(join(publicDir, "canvas-workspace.css"), "utf8");
+        return send(res, 200, css, "text/css");
+      }
+      if (p === "/canvas-workspace.js") {
+        const js = await readFile(join(publicDir, "canvas-workspace.js"), "utf8");
+        return send(res, 200, js, "application/javascript");
+      }
       if (p === "/api/project") {
         const caps = await project.loadInstalled();
         return send(res, 200, {
@@ -318,6 +346,29 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
           provider: generated.provider,
           model: generated.model,
         });
+      }
+      if (p === "/api/ai/ask" && req.method === "POST") {
+        const body = await readJson(req) as { prompt?: string; context?: string };
+        if (!body.prompt) return send(res, 400, { ok: false, error: "prompt required" });
+        const endpoint = process.env.SECSTREET_AI_ENDPOINT;
+        const model = process.env.SECSTREET_AI_MODEL;
+        if (!endpoint || !model) {
+          return send(res, 200, { ok: false, error: "AI not configured. Set SECSTREET_AI_ENDPOINT and SECSTREET_AI_MODEL in .env." });
+        }
+        const provider = new OpenAICompatibleProvider({
+          endpoint,
+          model,
+          apiKey: process.env.SECSTREET_AI_KEY,
+          timeoutMs: Number(process.env.SECSTREET_AI_TIMEOUT_MS ?? "60000"),
+        });
+        const system = "You are a security code analyst. Answer precisely and concisely. No filler, no disclaimers, no hedging.";
+        const user = (body.context ? "File content:\n\n" + body.context + "\n\n" : "") + "Question: " + body.prompt;
+        try {
+          const result = await provider.complete({ system, user });
+          return send(res, 200, { ok: true, answer: result.text, provider: result.provider, model: result.model });
+        } catch (err) {
+          return send(res, 200, { ok: false, error: (err as Error).message });
+        }
       }
       if (p === "/library") {
         const html = await readFile(join(publicDir, "library.html"), "utf8");
