@@ -125,7 +125,20 @@ window.CanvasParts.Render = (function () {
       ".wcv-folder-row:hover{background:#f1f3f4}",
       ".wcv-folder-name{font-size:13px;color:#0f172a;font-weight:500}",
       ".wcv-folder-path{font-family:ui-monospace,monospace;font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}",
-      ".wcv-folder-empty{padding:24px;text-align:center;color:#94a3b8;font-size:12.5px}"
+      ".wcv-folder-empty{padding:24px;text-align:center;color:#94a3b8;font-size:12.5px}",
+      ".wcv-wrap.wcv-library-dragover{outline:2px dashed #7c3aed;outline-offset:-8px}",
+      ".wcv-wrap.wcv-library-dragover::after{content:\"Drop capability to install\";position:absolute;top:16px;left:50%;transform:translateX(-50%);background:#7c3aed;color:#fff;font-size:12px;font-weight:500;padding:6px 12px;border-radius:8px;z-index:40;pointer-events:none}",
+      ".wcv-root-badge{position:absolute;bottom:6px;right:6px;pointer-events:none;z-index:5}",
+      ".wcv-rb-wrap{position:relative;display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:help}",
+      ".wcv-rb-svg{display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18));transition:transform .12s}",
+      ".wcv-rb-wrap:hover .wcv-rb-svg{transform:scale(1.08)}",
+      ".wcv-rb-tip{position:absolute;bottom:calc(100% + 6px);right:0;background:#fff;border:1px solid #e2e2e6;border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.14);padding:8px 10px;min-width:120px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;pointer-events:none}",
+      ".wcv-rb-wrap:hover .wcv-rb-tip{opacity:1;transform:translateY(0)}",
+      ".wcv-rb-tip-row{display:flex;align-items:center;gap:6px;font-family:ui-monospace,monospace;font-size:11px;color:#334155;line-height:1.7}",
+      ".wcv-rb-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}",
+      ".wcv-rb-tip-k{flex:1;color:#64748b;text-transform:uppercase;font-size:9.5px;letter-spacing:.06em}",
+      ".wcv-rb-tip-v{font-weight:700;color:#0f172a}",
+      ".wcv-rb-tip-foot{margin-top:6px;padding-top:6px;border-top:1px solid #f1f3f4;font-family:ui-monospace,monospace;font-size:10px;color:#94a3b8;text-align:right}"
     ].join("\n");
     document.head.appendChild(s);
   }
@@ -136,7 +149,7 @@ window.CanvasParts.Render = (function () {
     S.svg.innerHTML = "";
     const DETACHED = window.CanvasParts.Layout.DETACHED;
     for (const n of S.nodes) {
-      if (n.parent === DETACHED) continue; // floating, no edge
+      if (n.parent === DETACHED) continue;
       const parentPos = S.pos.get(n.parent || "");
       const selfPos = S.pos.get(n.path);
       if (!parentPos || !selfPos) continue;
@@ -201,6 +214,18 @@ window.CanvasParts.Render = (function () {
       (n.sub ? '<span class="wcv-meta">' + F.esc(n.sub) + '</span>' : '') + '</div>';
 
     if (n.dir) el.classList.add("has-caret");
+
+    if (n.isRoot && window.CanvasParts.RootBadge && window.CanvasParts.RootBadge.isOn()) {
+      try {
+        const html = window.CanvasParts.RootBadge.renderHtml();
+        if (html) {
+          const wrap = document.createElement("div");
+          wrap.className = "wcv-root-badge";
+          wrap.innerHTML = html;
+          el.appendChild(wrap);
+        }
+      } catch (err) { console.warn("[root-badge]", err); }
+    }
 
     const caretEl = el.querySelector(".wcv-caret");
     if (caretEl && !isEmpty) {

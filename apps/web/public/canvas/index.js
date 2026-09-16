@@ -136,6 +136,7 @@
     Render.rebuild();
     Panzoom.attach(wrap);
     window.CanvasParts.Upload.attach(wrap);
+    window.CanvasParts.LibraryDrop.attach(wrap);
     document.addEventListener("mousedown", onDocMouseDown);
 
 

@@ -155,6 +155,14 @@ window.CanvasParts.ContextMenu = (function () {
         items.push({ label: "Move workspace\u2026", action: () => window.CanvasParts.RootMove.enter() });
       }
       items.push({ label: "Fit to view", action: () => window.CanvasParts.Panzoom.fitToView() });
+      const badgeOn = window.CanvasParts.RootBadge.isOn();
+      items.push({
+        label: badgeOn ? "Hide composition badge" : "Show composition badge",
+        action: () => {
+          window.CanvasParts.RootBadge.toggle();
+          window.CanvasParts.Render.rebuild();
+        }
+      });
       items.push({ separator: true });
       items.push({ label: "New file", action: () => actionNewFile("") });
       items.push({ label: "New folder", action: () => actionNewFolder("") });
