@@ -68,11 +68,8 @@ window.CanvasParts.Drag = (function () {
             // dragged node (would create a cycle).
             const descendants = new Set(L.collectDescendants(S, n.path));
             if (folderNode && folderNode.dir && !descendants.has(folderPath)) {
-              // Re-parent instead of visual move.
               const target = folderPath === "" ? "" : folderPath;
-              if (window.CanvasParts.Reparent) {
-                window.CanvasParts.Reparent.reattach(n.path, target);
-              }
+              window.CanvasParts.Attach.attachWithConfirm(n.path, target);
               return;
             }
           }

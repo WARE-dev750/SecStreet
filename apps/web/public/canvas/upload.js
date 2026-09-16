@@ -1,11 +1,9 @@
-// upload.js — drop files from the OS onto a folder node (or canvas = root).
-// Posts to /api/files/upload, then refreshes the canvas.
+// upload.js — drop files from OS onto a folder node (or canvas = root).
 window.CanvasParts = window.CanvasParts || {};
 window.CanvasParts.Upload = (function () {
-  const MAX_BYTES = 1024 * 1024; // 1MB per file for v1 (text only)
+  const MAX_BYTES = 25 * 1024 * 1024; // 25MB per file
 
   function findDropTarget(e) {
-    // If the drop landed on a node, use it (folder → itself, file → parent).
     const el = e.target && e.target.closest ? e.target.closest(".wcv-node") : null;
     if (!el) return "";
     const S = window.CanvasParts.State.get();
@@ -14,7 +12,6 @@ window.CanvasParts.Upload = (function () {
     const node = S.nodes.find((n) => n.path === path);
     if (!node) return "";
     if (node.dir) return node.path;
-    // drop on a file → go into its parent folder
     const idx = node.path.lastIndexOf("/");
     return idx === -1 ? "" : node.path.slice(0, idx);
   }
@@ -30,11 +27,23 @@ window.CanvasParts.Upload = (function () {
 
   function readFile(file) {
     return new Promise((resolve) => {
-      if (file.size > MAX_BYTES) { resolve({ skip: true, name: file.name, reason: "too large" }); return; }
+      if (file.size > MAX_BYTES) {
+        resolve({ skip: true, name: file.name, reason: "over " + Math.round(MAX_BYTES / (1024 * 1024)) + "MB" });
+        return;
+      }
       const reader = new FileReader();
-      reader.onload = () => resolve({ name: file.name, content: String(reader.result || "") });
+      reader.onload = () => {
+        const buf = reader.result;
+        const bytes = new Uint8Array(buf);
+        let binary = "";
+        const chunk = 8192;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+        }
+        resolve({ name: file.name, content: btoa(binary), encoding: "base64", size: file.size });
+      };
       reader.onerror = () => resolve({ skip: true, name: file.name, reason: "read error" });
-      reader.readAsText(file);
+      reader.readAsArrayBuffer(file);
     });
   }
 
@@ -66,8 +75,8 @@ window.CanvasParts.Upload = (function () {
       });
       const data = await r.json();
       if (!data.ok) { alert("Upload failed: " + (data.error || "unknown")); return; }
-      if (data.written.length) {
-        console.log("[upload] wrote:", data.written.join(", "));
+      if (data.rejected && data.rejected.length) {
+        console.warn("[upload] rejected:", data.rejected);
       }
       await refresh();
     } catch (err) {
@@ -83,8 +92,9 @@ window.CanvasParts.Upload = (function () {
     const fresh = await Files.loadAll();
     S.allNodes = fresh;
     S.nodes = S.viewMode === "skills" ? Skills.transformToSkillView(fresh) : fresh;
+    S.nodes = window.CanvasParts.Reparent.applyOverrides(S.nodes, S.reparent);
     window.CanvasParts.State.pruneManualDelta();
-    window.CanvasParts.Connections.prune();
+    window.CanvasParts.Reparent.prune();
     window.CanvasParts.Render.rebuild();
   }
 
@@ -100,7 +110,6 @@ window.CanvasParts.Upload = (function () {
       });
     });
     wrap.addEventListener("dragleave", (e) => {
-      // Only clear if we actually left the wrap
       if (e.relatedTarget && wrap.contains(e.relatedTarget)) return;
       highlightTarget(false, "");
     });

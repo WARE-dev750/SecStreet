@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
-import { readFile, readdir, stat, writeFile, rm, mkdir } from "node:fs/promises";
-import { join, resolve, normalize, relative } from "node:path";
+import { readFile, readdir, stat, writeFile, rm, mkdir, rename } from "node:fs/promises";
+import { join, resolve, normalize, relative, dirname } from "node:path";
 import { Project, searchLibraryRanked, listLibrary, type AuditEntry } from "@secstreet/project";
 import { runCapability } from "@secstreet/runtime";
 import { runWorkflow } from "@secstreet/workflow";
@@ -172,13 +172,14 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         const js = await readFile(join(publicDir, "library.js"), "utf8");
         return send(res, 200, js, "application/javascript");
       }
-      const canvasModule = p.match(/^\/canvas\/([a-z][a-z0-9-]*)\.js$/);
-      if (canvasModule) {
+      // Any subdirectory .js file under public/ — canvas/, ide/, shared/, etc.
+      const subModule = p.match(/^\/([a-z][a-z0-9-]*)\/([a-z0-9][a-z0-9-]*)\.js$/);
+      if (subModule) {
         try {
-          const js = await readFile(join(publicDir, "canvas", canvasModule[1] + ".js"), "utf8");
+          const js = await readFile(join(publicDir, subModule[1], subModule[2] + ".js"), "utf8");
           return send(res, 200, js, "application/javascript");
         } catch {
-          return send(res, 404, { error: "canvas module not found: " + canvasModule[1] });
+          return send(res, 404, { error: "module not found: " + subModule[1] + "/" + subModule[2] });
         }
       }
 
@@ -292,6 +293,67 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         const caps = await client.list();
         return send(res, 200, { capabilities: caps });
       }
+      if (p === "/api/files/mkdir" && req.method === "POST") {
+        const body = await readJson(req) as { path?: string };
+        const rel = typeof body.path === "string" ? body.path : "";
+        if (!rel) return send(res, 400, { ok: false, error: "path required" });
+        let abs: string;
+        try { abs = safeResolve(project.root, rel); }
+        catch { return send(res, 400, { ok: false, error: "path escapes project" }); }
+        try { await mkdir(abs, { recursive: true }); }
+        catch (err) { return send(res, 500, { ok: false, error: (err as Error).message }); }
+        return send(res, 200, { ok: true, path: rel });
+      }
+
+      if (p === "/api/files/rename" && req.method === "POST") {
+        const body = await readJson(req) as { path?: string; newName?: string };
+        const rel = typeof body.path === "string" ? body.path : "";
+        const newName = typeof body.newName === "string" ? body.newName.trim() : "";
+        if (!rel || !newName) return send(res, 400, { ok: false, error: "path and newName required" });
+        if (newName.includes("/") || newName.includes("\\") || newName.startsWith(".")) {
+          return send(res, 400, { ok: false, error: "invalid name" });
+        }
+        let abs: string;
+        try { abs = safeResolve(project.root, rel); }
+        catch { return send(res, 400, { ok: false, error: "path escapes project" }); }
+        const parentAbs = dirname(abs);
+        const newAbs = join(parentAbs, newName);
+        const rootAbs = resolve(project.root);
+        if (newAbs !== rootAbs && !newAbs.startsWith(rootAbs + "/")) {
+          return send(res, 400, { ok: false, error: "target escapes project" });
+        }
+        try { await rename(abs, newAbs); }
+        catch (err) { return send(res, 500, { ok: false, error: (err as Error).message }); }
+        return send(res, 200, { ok: true });
+      }
+
+      if (p === "/api/files/move" && req.method === "POST") {
+        const body = await readJson(req) as { from?: string; to?: string };
+        const from = typeof body.from === "string" ? body.from : "";
+        const to = typeof body.to === "string" ? body.to : "";
+        if (!from || !to) return send(res, 400, { ok: false, error: "from and to required" });
+        let absFrom: string, absTo: string;
+        try { absFrom = safeResolve(project.root, from); } catch { return send(res, 400, { ok: false, error: "from escapes project" }); }
+        try { absTo = safeResolve(project.root, to); } catch { return send(res, 400, { ok: false, error: "to escapes project" }); }
+        try {
+          await mkdir(dirname(absTo), { recursive: true });
+          await rename(absFrom, absTo);
+        } catch (err) { return send(res, 500, { ok: false, error: (err as Error).message }); }
+        return send(res, 200, { ok: true, from, to });
+      }
+
+      if (p === "/api/files/delete" && req.method === "POST") {
+        const body = await readJson(req) as { path?: string };
+        const rel = typeof body.path === "string" ? body.path : "";
+        if (!rel) return send(res, 400, { ok: false, error: "path required" });
+        let abs: string;
+        try { abs = safeResolve(project.root, rel); }
+        catch { return send(res, 400, { ok: false, error: "path escapes project" }); }
+        try { await rm(abs, { recursive: true, force: true }); }
+        catch (err) { return send(res, 500, { ok: false, error: (err as Error).message }); }
+        return send(res, 200, { ok: true });
+      }
+
       if (p === "/api/files/upload" && req.method === "POST") {
         const body = await readJson(req) as { target?: string; files?: Array<{ name?: string; content?: string }> };
         const target = typeof body.target === "string" ? body.target : "";
@@ -312,7 +374,11 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
           try { abs = safeResolve(project.root, rel); }
           catch { rejected.push({ name, reason: "path escapes project" }); continue; }
           try {
-            await writeFile(abs, f.content, "utf8");
+            const buf = (f as { encoding?: string }).encoding === "base64"
+              ? Buffer.from(f.content, "base64")
+              : Buffer.from(f.content, "utf8");
+            await mkdir(dirname(abs), { recursive: true });
+            await writeFile(abs, buf);
             written.push(rel);
           } catch (err) {
             rejected.push({ name, reason: (err as Error).message });
