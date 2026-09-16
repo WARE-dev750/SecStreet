@@ -6,6 +6,8 @@
     if (S && S.ctxMenu && !S.ctxMenu.contains(e.target)) window.CanvasParts.ContextMenu.hide();
   }
 
+
+
   async function mount(host) {
     const State = window.CanvasParts.State;
     const Files = window.CanvasParts.Files;
@@ -37,7 +39,7 @@
       allNodes: nodes,
       nodes: initialViewMode === "skills" ? Skills.transformToSkillView(nodes) : nodes,
       viewMode: initialViewMode,
-      collapsed: State.loadCollapsed(),
+      collapsed: State.loadCollapsed(initialViewMode),
       manualDelta: State.loadManualDelta(initialViewMode),
       zoom: savedPanZoom ? savedPanZoom.zoom : 1,
       panX: savedPanZoom ? savedPanZoom.panX : 40,
@@ -46,13 +48,18 @@
       listeners: null,
       svg: null, stage: null, viewport: null, wrap: null,
       hudZ: null, aiDrawer: null, aiNode: null,
+      rootMoving: false, rootMoveSnapshot: null, rootMoveBar: null,
+      reparent: new Map(),
       rootNode: null, pos: null, width: 0, height: 0
     };
     State.set(S);
 
+    S.reparent = window.CanvasParts.Reparent.load(initialViewMode);
+    S.nodes = window.CanvasParts.Reparent.applyOverrides(S.nodes, S.reparent);
     S.rootNode = { path: "", name: project.name || "workspace", dir: true, parent: null, category: "folder", sub: "workspace", isRoot: true };
 
     State.pruneManualDelta();
+    window.CanvasParts.Reparent.prune();
 
     // --- DOM skeleton ---
     const wrap = document.createElement("div");
@@ -95,8 +102,11 @@
       if (!mode || mode === S.viewMode) return;
       S.viewMode = mode;
       State.saveViewMode(mode);
-      S.collapsed = State.loadCollapsed();
+      S.collapsed = State.loadCollapsed(mode);
       S.manualDelta = State.loadManualDelta(mode);
+      S.reparent = window.CanvasParts.Reparent.load(mode);
+      S.nodes = mode === "skills" ? Skills.transformToSkillView(S.allNodes) : S.allNodes;
+      S.nodes = window.CanvasParts.Reparent.applyOverrides(S.nodes, S.reparent);
       for (const b of toggle.querySelectorAll(".wcv-toggle-btn")) b.classList.toggle("active", b.dataset.mode === mode);
       S.nodes = mode === "skills" ? Skills.transformToSkillView(S.allNodes) : S.allNodes;
       State.pruneManualDelta();
@@ -125,7 +135,9 @@
     // --- Initial render ---
     Render.rebuild();
     Panzoom.attach(wrap);
+    window.CanvasParts.Upload.attach(wrap);
     document.addEventListener("mousedown", onDocMouseDown);
+
 
     const hasSavedState = savedPanZoom || S.manualDelta.size > 0 || S.collapsed.size > 0;
     if (hasSavedState) Render.applyTransform();
@@ -147,6 +159,9 @@
       }
     }
     document.removeEventListener("mousedown", onDocMouseDown);
+    if (S && S.rootMoving) {
+      try { window.CanvasParts.RootMove.exit(true); } catch {}
+    }
     if (S && S.aiDrawer) { S.aiDrawer.remove(); S.aiDrawer = null; }
     if (S) State.persistPanZoom();
     if (S && S.host) S.host.innerHTML = "";

@@ -60,6 +60,10 @@ window.CanvasParts.Render = (function () {
       ".wcv-node.k-skill.cat-blue .wcv-badge{background:rgba(37,99,235,.12);color:#2563eb}",
       ".wcv-node.k-skill.cat-purple .wcv-badge{background:rgba(124,58,237,.12);color:#7c3aed}",
       ".wcv-node.k-unknown{border-left-color:#94a3b8}",
+      ".wcv-node.k-detached{background:#fffbeb;border-left-color:#d97706}",
+      ".wcv-node.k-detached .wcv-badge{background:rgba(217,119,6,.12);color:#d97706}",
+      ".wcv-node.wcv-drop-target{outline:2px dashed #2563eb;outline-offset:2px;background:#eff6ff}",
+      ".wcv-node.wcv-drop-folder{outline:2px solid #2563eb;outline-offset:2px;background:#eff6ff}",
       ".wcv-toggle{position:absolute;top:14px;left:14px;display:flex;background:#fff;border:1px solid #e2e2e6;border-radius:8px;padding:2px;z-index:10;box-shadow:0 1px 3px rgba(0,0,0,.06)}",
       ".wcv-toggle-btn{border:none;background:transparent;padding:5px 12px;border-radius:6px;font-size:11.5px;font-weight:500;color:#64748b;cursor:pointer;font-family:inherit}",
       ".wcv-toggle-btn:hover{color:#0f172a}",
@@ -88,7 +92,15 @@ window.CanvasParts.Render = (function () {
       ".wcv-ai-actions button:hover{background:#1d4ed8}",
       ".wcv-ai-msg{padding:6px 16px 0;font-family:ui-monospace,monospace;font-size:11px;color:#94a3b8;min-height:16px}",
       ".wcv-ai-out{max-height:180px;overflow:auto;margin:6px 16px 14px;padding:10px 12px;font-family:ui-monospace,monospace;font-size:11.5px;color:#334155;background:#f8fafc;border:1px solid #e2e2e6;border-radius:6px;white-space:pre-wrap;word-break:break-word}",
-      ".wcv-ai-out:empty{display:none}"
+      ".wcv-ai-out:empty{display:none}",
+      ".wcv-node.is-root.wcv-move-active{border:2px dashed #2563eb;border-left:3px solid #2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.12);cursor:grab}",
+      ".wcv-move-bar{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e2e2e6;border-radius:10px;padding:8px 12px 8px 14px;box-shadow:0 8px 32px rgba(0,0,0,.10);z-index:30;font-family:inherit}",
+      ".wcv-move-dot{width:8px;height:8px;border-radius:50%;background:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}",
+      ".wcv-move-label{font-size:12.5px;color:#0f172a;font-weight:500}",
+      ".wcv-move-btn{border:1px solid #d9dbe0;background:#fff;color:#334155;font-size:12px;font-weight:500;padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit}",
+      ".wcv-move-btn:hover{background:#f1f3f4;color:#0f172a}",
+      ".wcv-move-btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}",
+      ".wcv-move-btn.primary:hover{background:#1d4ed8}"
     ].join("\n");
     document.head.appendChild(s);
   }
@@ -97,7 +109,9 @@ window.CanvasParts.Render = (function () {
     const S = window.CanvasParts.State.get();
     if (!S || !S.svg) return;
     S.svg.innerHTML = "";
+    const DETACHED = window.CanvasParts.Layout.DETACHED;
     for (const n of S.nodes) {
+      if (n.parent === DETACHED) continue; // floating, no edge
       const parentPos = S.pos.get(n.parent || "");
       const selfPos = S.pos.get(n.path);
       if (!parentPos || !selfPos) continue;
@@ -128,7 +142,8 @@ window.CanvasParts.Render = (function () {
     const F = window.CanvasParts.Files;
     const el = document.createElement("div");
     const catClass = n.catClass ? " cat-" + n.catClass : "";
-    el.className = "wcv-node k-" + (n.category || "unknown") + (n.isRoot ? " is-root" : "") + catClass;
+    const detachedClass = n.isDetached ? " k-detached" : "";
+    el.className = "wcv-node k-" + (n.category || "unknown") + (n.isRoot ? " is-root" : "") + catClass + detachedClass;
     el.style.left = p.x + "px";
     el.style.top = p.y + "px";
     el.style.width = window.CanvasParts.Layout.NODE_W + "px";
@@ -162,7 +177,6 @@ window.CanvasParts.Render = (function () {
 
     if (n.dir) el.classList.add("has-caret");
 
-    // Caret
     const caretEl = el.querySelector(".wcv-caret");
     if (caretEl && !isEmpty) {
       caretEl.addEventListener("mousedown", (e) => { e.stopPropagation(); e.preventDefault(); });
@@ -173,10 +187,8 @@ window.CanvasParts.Render = (function () {
       });
     }
 
-    // Drag + click dispatch
     window.CanvasParts.Drag.attach(el, n);
 
-    // Context menu
     el.addEventListener("contextmenu", (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
@@ -186,7 +198,6 @@ window.CanvasParts.Render = (function () {
     return el;
   }
 
-  // Relayout: recompute positions, apply deltas, reposition existing DOM.
   function relayout() {
     const S = window.CanvasParts.State.get();
     const L = window.CanvasParts.Layout;
@@ -213,7 +224,6 @@ window.CanvasParts.Render = (function () {
     window.CanvasParts.State.persistCollapsed();
   }
 
-  // Rebuild: clear stage, recompute, re-render all nodes. Used on mount + view toggle.
   function rebuild() {
     const S = window.CanvasParts.State.get();
     const L = window.CanvasParts.Layout;

@@ -5,10 +5,11 @@ window.CanvasParts.State = (function () {
 
   const KEYS = {
     viewMode: "secstreet.canvas.viewMode",
-    collapsed: "secstreet.canvas.collapsed",
+    collapsed: (mode) => "secstreet.canvas.collapsed." + (mode || "files"),
     panzoom: "secstreet.canvas.panzoom",
     manualDelta: (mode) => "secstreet.canvas.manualDelta." + (mode || "files"),
-    legacyManualPos: "secstreet.canvas.manualPos"
+    legacyManualPos: "secstreet.canvas.manualPos",
+    legacyCollapsed: "secstreet.canvas.collapsed"
   };
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
@@ -18,18 +19,20 @@ window.CanvasParts.State = (function () {
   function loadViewMode() { return lsGet(KEYS.viewMode) || "files"; }
   function saveViewMode(m) { lsSet(KEYS.viewMode, m); }
 
-  function loadCollapsed() {
+  function loadCollapsed(viewMode) {
     try {
-      const raw = lsGet(KEYS.collapsed);
+      const raw = lsGet(KEYS.collapsed(viewMode));
       if (!raw) return new Set();
       const arr = JSON.parse(raw);
-      // "" is the root path. The root is never persisted as collapsed.
-      return new Set(Array.isArray(arr) ? arr.filter((x) => x !== "") : []);
+      // Root CAN be collapsed. Its path is "". Empty string is a valid entry
+      // and means "root collapsed, hide its direct children". The root node
+      // itself always stays visible because buildLayout assigns it a pos.
+      return new Set(Array.isArray(arr) ? arr : []);
     } catch { return new Set(); }
   }
   function persistCollapsed() {
     if (!S) return;
-    lsSet(KEYS.collapsed, JSON.stringify([...S.collapsed]));
+    lsSet(KEYS.collapsed(S.viewMode), JSON.stringify([...S.collapsed]));
   }
 
   function loadManualDelta(viewMode) {
@@ -78,7 +81,10 @@ window.CanvasParts.State = (function () {
     lsSet(KEYS.panzoom, JSON.stringify({ zoom: S.zoom, panX: S.panX, panY: S.panY }));
   }
 
-  function cleanupLegacy() { lsRemove(KEYS.legacyManualPos); }
+  function cleanupLegacy() {
+    lsRemove(KEYS.legacyManualPos);
+    lsRemove(KEYS.legacyCollapsed);
+  }
 
   function set(s) { S = s; }
   function get() { return S; }

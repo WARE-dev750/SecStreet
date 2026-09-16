@@ -172,6 +172,16 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         const js = await readFile(join(publicDir, "library.js"), "utf8");
         return send(res, 200, js, "application/javascript");
       }
+      const canvasModule = p.match(/^\/canvas\/([a-z][a-z0-9-]*)\.js$/);
+      if (canvasModule) {
+        try {
+          const js = await readFile(join(publicDir, "canvas", canvasModule[1] + ".js"), "utf8");
+          return send(res, 200, js, "application/javascript");
+        } catch {
+          return send(res, 404, { error: "canvas module not found: " + canvasModule[1] });
+        }
+      }
+
       if (p === "/canvas.js") {
         const js = await readFile(join(publicDir, "canvas.js"), "utf8");
         return send(res, 200, js, "application/javascript");
@@ -282,6 +292,35 @@ export async function startWebServer(opts: WebServerOptions): Promise<WebServerH
         const caps = await client.list();
         return send(res, 200, { capabilities: caps });
       }
+      if (p === "/api/files/upload" && req.method === "POST") {
+        const body = await readJson(req) as { target?: string; files?: Array<{ name?: string; content?: string }> };
+        const target = typeof body.target === "string" ? body.target : "";
+        const files = Array.isArray(body.files) ? body.files : [];
+        if (!files.length) return send(res, 400, { ok: false, error: "no files" });
+        const written: string[] = [];
+        const rejected: Array<{ name: string; reason: string }> = [];
+        for (const f of files) {
+          const name = String(f.name || "").trim();
+          if (!name) { rejected.push({ name: "(blank)", reason: "empty name" }); continue; }
+          if (name.includes("/") || name.includes("\\") || name.startsWith(".")) {
+            rejected.push({ name, reason: "invalid name" });
+            continue;
+          }
+          if (typeof f.content !== "string") { rejected.push({ name, reason: "missing content" }); continue; }
+          const rel = target ? target.replace(/\/+$/, "") + "/" + name : name;
+          let abs: string;
+          try { abs = safeResolve(project.root, rel); }
+          catch { rejected.push({ name, reason: "path escapes project" }); continue; }
+          try {
+            await writeFile(abs, f.content, "utf8");
+            written.push(rel);
+          } catch (err) {
+            rejected.push({ name, reason: (err as Error).message });
+          }
+        }
+        return send(res, 200, { ok: true, written, rejected });
+      }
+
       if (p === "/api/files") {
         const tree = await walkTree(project.root, "");
         return send(res, 200, { root: project.root, tree });

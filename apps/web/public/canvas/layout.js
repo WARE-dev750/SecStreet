@@ -4,9 +4,19 @@ window.CanvasParts.Layout = (function () {
   const NODE_W = 220, NODE_H = 54;
   const GAP_X = 60, GAP_Y = 14, PAD = 40;
 
+  const DETACHED = "#detached";
+
   function buildLayout(nodes, collapsed) {
-    const byParent = new Map();
+    // Split floating nodes from tree nodes.
+    const floating = [];
+    const treeNodes = [];
     for (const n of nodes) {
+      if (n.parent === DETACHED) floating.push(n);
+      else treeNodes.push(n);
+    }
+
+    const byParent = new Map();
+    for (const n of treeNodes) {
       const p = n.parent || "";
       if (!byParent.has(p)) byParent.set(p, []);
       byParent.get(p).push(n);
@@ -47,6 +57,24 @@ window.CanvasParts.Layout = (function () {
       if (p.x + NODE_W > maxX) maxX = p.x + NODE_W;
       if (p.y + NODE_H > maxY) maxY = p.y + NODE_H;
     }
+
+    // Place floating nodes in a row below the tree, no parent, no edge.
+    if (floating.length) {
+      const startY = (maxY || PAD) + 100;
+      let fx = PAD;
+      let fy = startY;
+      const perRow = 5;
+      let i = 0;
+      for (const f of floating) {
+        pos.set(f.path, { x: fx, y: fy });
+        i++;
+        if (i % perRow === 0) { fx = PAD; fy += NODE_H + GAP_Y * 2; }
+        else fx += NODE_W + GAP_X;
+      }
+      maxX = Math.max(maxX, PAD + perRow * (NODE_W + GAP_X));
+      maxY = Math.max(maxY, fy + NODE_H);
+    }
+
     return { pos, width: maxX + PAD, height: maxY + PAD };
   }
 
@@ -56,6 +84,7 @@ window.CanvasParts.Layout = (function () {
     const parentOf = new Map();
     for (const n of S.nodes) parentOf.set(n.path, n.parent || "");
     parentOf.set("", "");
+    parentOf.set(DETACHED, DETACHED);
     const cache = new Map();
     function cumDelta(path) {
       if (cache.has(path)) return cache.get(path);
@@ -96,5 +125,5 @@ window.CanvasParts.Layout = (function () {
     return out;
   }
 
-  return { NODE_W, NODE_H, GAP_X, GAP_Y, PAD, buildLayout, applyManualDeltas, collectDescendants };
+  return { NODE_W, NODE_H, GAP_X, GAP_Y, PAD, DETACHED, buildLayout, applyManualDeltas, collectDescendants };
 })();

@@ -200,6 +200,48 @@ async function main() {
   await page.waitForTimeout(1200);
   await dumpState(page, "STEP 10 — back to Structure after navigating away");
 
+  // Open everything + close everything stress test on Skills view
+  await page.locator('.wcv-toggle-btn[data-mode="skills"]').click();
+  await page.waitForTimeout(400);
+  await dumpState(page, "STEP 11 — Skills view before stress test");
+  for (let i = 0; i < 20; i++) {
+    // open everything
+    await page.evaluate(() => {
+      const root = document.querySelector('.wcv-node.is-root');
+      if (!root) return;
+      const r = root.getBoundingClientRect();
+      root.dispatchEvent(new MouseEvent("contextmenu", {
+        bubbles: true, cancelable: true,
+        clientX: r.x + r.width / 2, clientY: r.y + r.height / 2
+      }));
+    });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll(".wcv-menu-item"));
+      const open = items.find((x) => x.textContent.startsWith("Open everything"));
+      if (open) open.click();
+    });
+    await page.waitForTimeout(80);
+    // close everything
+    await page.evaluate(() => {
+      const root = document.querySelector('.wcv-node.is-root');
+      if (!root) return;
+      const r = root.getBoundingClientRect();
+      root.dispatchEvent(new MouseEvent("contextmenu", {
+        bubbles: true, cancelable: true,
+        clientX: r.x + r.width / 2, clientY: r.y + r.height / 2
+      }));
+    });
+    await page.waitForTimeout(80);
+    await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll(".wcv-menu-item"));
+      const close = items.find((x) => x.textContent.startsWith("Close everything"));
+      if (close) close.click();
+    });
+    await page.waitForTimeout(80);
+  }
+  await dumpState(page, "STEP 12 — Skills view after 20 open/close cycles");
+
   // Right-click root
   const rootCenter = await page.evaluate(() => {
     const n = document.querySelector('.wcv-node.is-root');

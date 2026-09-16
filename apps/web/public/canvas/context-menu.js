@@ -32,11 +32,22 @@ window.CanvasParts.ContextMenu = (function () {
     const items = [];
 
     if (node.isRoot) {
+      const moving = window.CanvasParts.RootMove.isActive();
+      if (moving) {
+        items.push({ label: "Done moving", action: () => window.CanvasParts.RootMove.exit(true) });
+        items.push({ label: "Cancel move", action: () => window.CanvasParts.RootMove.exit(false) });
+      } else {
+        items.push({ label: "Move workspace\u2026", action: () => window.CanvasParts.RootMove.enter() });
+      }
       items.push({ label: "Fit to view", action: () => window.CanvasParts.Panzoom.fitToView() });
       if (S.collapsed.size > 0) {
         items.push({ label: "Open everything", action: () => window.CanvasParts.Collapse.openAll() });
       } else {
         items.push({ label: "Close everything", action: () => window.CanvasParts.Collapse.closeAll() });
+      }
+      const detachedCount = window.CanvasParts.Reparent ? window.CanvasParts.Reparent.count() : 0;
+      if (detachedCount > 0) {
+        items.push({ label: "Return all detached (" + detachedCount + ")", action: () => window.CanvasParts.Reparent.resetAll() });
       }
       if (S.manualDelta && S.manualDelta.size > 0) {
         items.push({
@@ -55,12 +66,29 @@ window.CanvasParts.ContextMenu = (function () {
         if (S.collapsed.has(node.path)) items.push({ label: "Open folder", action: () => window.CanvasParts.Collapse.toggle(node.path) });
         else items.push({ label: "Close folder", action: () => window.CanvasParts.Collapse.toggle(node.path) });
       }
+      if (node.isDetached) {
+        // Detached pseudo-folder itself — offer to reset everything inside
+        items.push({ label: "Return all to original folders", action: () => window.CanvasParts.Reparent.resetAll() });
+      } else {
+        const isDetached = window.CanvasParts.Reparent.isDetached(node.path);
+        if (isDetached) {
+          items.push({ label: "Return to original folder", action: () => window.CanvasParts.Reparent.reset(node.path) });
+        } else {
+          items.push({ label: "Detach from folder", action: () => window.CanvasParts.Reparent.detach(node.path) });
+        }
+      }
       items.push({ label: "Copy path", action: () => navigator.clipboard.writeText(node.path) });
       items.push({ label: "Reveal in Explorer", action: () => revealInExplorer(node.path) });
     } else {
-      items.push({ label: "Preview in drawer", action: () => window.CanvasParts.AI.openDrawer(node, "") });
+      const isDetached = window.CanvasParts.Reparent.isDetached(node.path);
+      items.push({ label: "Open preview", action: () => window.CanvasParts.AI.openDrawer(node, "") });
       items.push({ label: "Open in editor", action: () => openInEditor(node.path) });
       items.push({ label: "Explain with AI", action: () => window.CanvasParts.AI.openDrawer(node, "Explain what this file does in one short paragraph. Then list its main functions, exports, or entry points. Be concrete.") });
+      if (isDetached) {
+        items.push({ label: "Return to original folder", action: () => window.CanvasParts.Reparent.reset(node.path) });
+      } else {
+        items.push({ label: "Detach from folder", action: () => window.CanvasParts.Reparent.detach(node.path) });
+      }
       items.push({ label: "Copy path", action: () => navigator.clipboard.writeText(node.path) });
       items.push({ label: "Reveal in Explorer", action: () => revealInExplorer(node.path) });
     }
